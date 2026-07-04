@@ -6179,27 +6179,13 @@ function executeMerge(){
 // ═══════════════════════════════════════════════════════════
 if('serviceWorker' in navigator && location.protocol !== 'file:' && location.protocol !== 'content:'){
   window.addEventListener('load',()=>{
-    // Inline service worker as blob URL — no separate SW file needed
-    const swCode=`
-const CACHE='echomind-v${APP_BUILD_VERSION}';
-const ASSETS=['/'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{})));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
-self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  e.respondWith(caches.match(e.request).then(cached=>{
-    const net=fetch(e.request).then(r=>{
-      if(r&&r.status===200){const clone=r.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));}
-      return r;
-    }).catch(()=>cached);
-    return cached||net;
-  }));
-});`;
-    try{
-      const blob=new Blob([swCode],{type:'application/javascript'});
-      const swUrl=URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl).catch(()=>{/* SW optional — silent fail */});
-    }catch(e){/* silent */}
+    // Registered from a real file (sw.js, uploaded alongside index.html in the repo
+    // root) rather than a blob: URL. Chrome's PWA installability checklist requires
+    // a same-origin, non-blob service worker to show the actual "Install" prompt —
+    // a blob-URL SW still runs (caching/offline work fine) but Chrome silently
+    // excludes it from the installability decision, which is why only the plain
+    // "Add to Home Screen" shortcut option was showing before, not a real Install.
+    navigator.serviceWorker.register('sw.js').catch(()=>{/* SW optional — silent fail */});
   });
 }
 
