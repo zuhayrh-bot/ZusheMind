@@ -7,7 +7,23 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#05070D">
 <title>ZuShé Mind v7</title>
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;ZuShé Mind&quot;,&quot;short_name&quot;:&quot;ZuShé&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#05070D&quot;,&quot;theme_color&quot;:&quot;#00E5FF&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2305070D'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300E5FF' stroke-width='6'/%3E%3Ccircle cx='96' cy='96' r='20' fill='%2300E5FF'/%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;,&quot;purpose&quot;:&quot;any maskable&quot;}]}">
+<!-- Icon files expected alongside index.html in the repo root: icon-192.png, icon-512.png -->
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="manifest" id="mainManifest" href="data:application/json,%7B%22name%22%3A%22ZuSh%C3%A9%20Mind%22%2C%22short_name%22%3A%22ZuSh%C3%A9%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2305070D%22%2C%22theme_color%22%3A%22%2305070D%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon-192.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%2C%7B%22src%22%3A%22icon-512.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+<!--
+  BUG FIX NOTE: the previous inline manifest had raw, un-encoded "#" characters in
+  background_color/theme_color (e.g. href="data:application/json,{...#05070D...}").
+  In a URL, "#" starts a fragment identifier — everything after the FIRST "#" is
+  discarded by the browser before the data URI is even parsed, so the manifest JSON
+  was being truncated and was invalid on every page load. This is why Chrome only
+  ever offered "Add to Home Screen" / "Create shortcut" and never a real "Install"
+  prompt — it had no valid manifest to evaluate for installability, regardless of
+  the service worker. Fixed by properly percent-encoding the whole JSON string
+  (# becomes %23) via encodeURIComponent, same approach applyAppIcon() already used
+  correctly for the custom-icon manifest rewrite further down in this file.
+-->
+
 <!-- Non-render-blocking font load — page shows immediately with system fonts, then upgrades -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6335,7 +6351,7 @@ function resizeImageToDataUrl(file,size){
 function applyAppIcon(dataUrl){
   const manifest={
     name:'ZuShé Mind',short_name:'ZuShé',start_url:'.',display:'standalone',
-    background_color:'#05070D',theme_color:'#00E5FF',
+    background_color:'#05070D',theme_color:'#05070D',
     icons:[
       {src:dataUrl,sizes:'192x192',type:'image/png',purpose:'any maskable'},
       {src:dataUrl,sizes:'512x512',type:'image/png',purpose:'any maskable'}
