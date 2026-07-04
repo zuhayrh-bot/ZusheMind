@@ -10,18 +10,18 @@
 <!-- Icon files expected alongside index.html in the repo root: icon-192.png, icon-512.png -->
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="manifest" id="mainManifest" href="data:application/json,%7B%22name%22%3A%22ZuSh%C3%A9%20Mind%22%2C%22short_name%22%3A%22ZuSh%C3%A9%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2305070D%22%2C%22theme_color%22%3A%22%2305070D%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon-192.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%2C%7B%22src%22%3A%22icon-512.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+<link rel="manifest" id="mainManifest" href="manifest.json">
 <!--
-  BUG FIX NOTE: the previous inline manifest had raw, un-encoded "#" characters in
-  background_color/theme_color (e.g. href="data:application/json,{...#05070D...}").
-  In a URL, "#" starts a fragment identifier — everything after the FIRST "#" is
-  discarded by the browser before the data URI is even parsed, so the manifest JSON
-  was being truncated and was invalid on every page load. This is why Chrome only
-  ever offered "Add to Home Screen" / "Create shortcut" and never a real "Install"
-  prompt — it had no valid manifest to evaluate for installability, regardless of
-  the service worker. Fixed by properly percent-encoding the whole JSON string
-  (# becomes %23) via encodeURIComponent, same approach applyAppIcon() already used
-  correctly for the custom-icon manifest rewrite further down in this file.
+  BUG FIX NOTE #2: even after fixing the un-encoded "#" characters (see prior note),
+  a data: URI manifest has an ambiguous/null base origin. Per spec, start_url and
+  scope are resolved relative to the MANIFEST's own URL, not the page's URL — a
+  data: URI has no real path for "." to resolve against, which some browsers
+  (including Chrome, inconsistently) silently treat as invalid rather than erroring
+  visibly. This is the same failure mode as before: no crash, no visible error, just
+  "Create shortcut" instead of a real "Install" prompt. Switched to a genuine
+  manifest.json file (uploaded alongside index.html) so start_url/scope resolve
+  against a real, unambiguous location — this is also simply the standard, documented
+  approach every PWA guide recommends, rather than the inline data-URI workaround.
 -->
 
 <!-- Non-render-blocking font load — page shows immediately with system fonts, then upgrades -->
@@ -1017,6 +1017,12 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6">A square image works best — it's auto-cropped/resized. This sets the icon for the <b>next</b> time you tap ⋮ → Add to Home Screen; it won't retroactively change a shortcut you've already installed. If ZuShé Mind is already on your home screen, remove that shortcut and re-add it after uploading here.</div>
       </div>
+    </div>
+    <div class="set-row">
+      <div class="set-lbl">🔍 Install Diagnostics</div>
+      <div class="card-body" style="margin-bottom:10px">Checks the same things Chrome checks before offering a real "Install" prompt instead of a plain shortcut — useful since desktop DevTools isn't available on phone.</div>
+      <button class="btn btn-teal" style="width:100%" onclick="runInstallDiagnostics()">Run Check</button>
+      <div id="installDiagResult" style="display:none;margin-top:9px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.8;font-family:var(--mono)"></div>
     </div>
     <div class="set-row">
       <div class="set-lbl">🩺 Self-Diagnostics</div>
@@ -6348,9 +6354,97 @@ function resizeImageToDataUrl(file,size){
     reader.readAsDataURL(file);
   });
 }
+// ═══════════════════════════════════════════════════════════
+// INSTALL DIAGNOSTICS — self-checks the same criteria Chrome uses to decide whether
+// to show a real "Install" prompt vs falling back to "Create shortcut". Exists
+// because desktop DevTools (Application > Manifest panel) isn't available when
+// developing entirely from a phone — this surfaces the same information in-app.
+// ═══════════════════════════════════════════════════════════
+async function runInstallDiagnostics(){
+  const el=document.getElementById('installDiagResult');
+  if(!el)return;
+  el.style.cssText='display:block;background:var(--bg4);border:1px solid var(--border2);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:9px;font-family:var(--mono);line-height:1.8';
+  el.innerHTML='Checking…';
+  const lines=[];
+  let allOk=true;
+  const mark=(ok)=>ok?'✅':(allOk=false,'❌');
+
+  // 1. HTTPS / secure context
+  const isSecure=location.protocol==='https:'||location.hostname==='localhost';
+  lines.push(`${mark(isSecure)} Secure context (https): ${location.protocol}`);
+
+  // 2. Manifest link exists and is fetchable + valid JSON
+  const manifestLink=document.querySelector('link[rel="manifest"]');
+  let manifestOk=false,manifestData=null;
+  if(!manifestLink){
+    lines.push('❌ No <link rel="manifest"> found in page');
+    allOk=false;
+  }else{
+    lines.push(`${manifestLink.href.startsWith('data:')?'⚠️':'✅'} Manifest href: ${manifestLink.href.startsWith('data:')?'inline data: URI (fragile — see note below)':manifestLink.href}`);
+    try{
+      const res=await fetch(manifestLink.href);
+      if(!res.ok){lines.push(`❌ Manifest fetch failed: HTTP ${res.status}`);allOk=false;}
+      else{
+        manifestData=await res.json();
+        manifestOk=true;
+        lines.push('✅ Manifest fetched and parsed as valid JSON');
+        lines.push(`${mark(!!manifestData.name)} name: ${manifestData.name||'(missing)'}`);
+        lines.push(`${mark(!!manifestData.start_url)} start_url: ${manifestData.start_url||'(missing)'}`);
+        lines.push(`${mark(manifestData.display==='standalone'||manifestData.display==='fullscreen')} display: ${manifestData.display||'(missing)'}`);
+        const has192=manifestData.icons?.some(i=>i.sizes==='192x192');
+        const has512=manifestData.icons?.some(i=>i.sizes==='512x512');
+        lines.push(`${mark(has192)} Has 192×192 icon entry`);
+        lines.push(`${mark(has512)} Has 512×512 icon entry`);
+      }
+    }catch(e){lines.push(`❌ Manifest fetch/parse error: ${e.message}`);allOk=false;}
+  }
+
+  // 3. Icons actually load (not 404)
+  if(manifestOk&&manifestData?.icons){
+    for(const icon of manifestData.icons){
+      try{
+        const iconUrl=new URL(icon.src,manifestLink.href.startsWith('data:')?location.href:manifestLink.href).href;
+        const r=await fetch(iconUrl,{method:'HEAD'});
+        lines.push(`${mark(r.ok)} Icon "${icon.src}" (${icon.sizes}): ${r.ok?'loads OK':'HTTP '+r.status})`);
+      }catch(e){lines.push(`❌ Icon "${icon.src}" failed to load: ${e.message}`);allOk=false;}
+    }
+  }
+
+  // 4. Service worker registered and active
+  if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    if(regs.length===0){
+      lines.push('❌ No service worker registered yet (may need a moment after first load — try again)');
+      allOk=false;
+    }else{
+      for(const reg of regs){
+        const sw=reg.active||reg.waiting||reg.installing;
+        const state=sw?sw.state:'unknown';
+        const isBlob=sw&&sw.scriptURL&&sw.scriptURL.startsWith('blob:');
+        lines.push(`${mark(state==='activated'&&!isBlob)} Service worker (${reg.scope}): state=${state}${isBlob?' ⚠️ registered from blob: URL — not counted toward installability':''}`);
+      }
+    }
+  }else{
+    lines.push('❌ Service workers not supported in this browser');
+    allOk=false;
+  }
+
+  lines.push('');
+  lines.push(allOk?'✅ All checks passed — Chrome should offer a real Install prompt. If it still doesn\'t, try clearing site data once and reloading (Chrome caches a bad manifest/SW result).':'⚠️ One or more checks failed above — that\'s the specific reason Install isn\'t showing.');
+
+  el.innerHTML=lines.join('<br>');
+}
+
 function applyAppIcon(dataUrl){
+  // NOTE: this still swaps the manifest to a data: URI at runtime, which carries the
+  // same start_url/scope resolution risk described in the <head> comment above. This
+  // is acceptable ONLY because it's meant to be used BEFORE "Add to Home Screen" —
+  // once installed, the OS reads the manifest once and won't pick up this runtime
+  // change anyway (see toast below). If you want a fully custom icon AND guaranteed
+  // installability, the more reliable path is replacing icon-192.png/icon-512.png in
+  // the repo itself rather than using this in-app uploader.
   const manifest={
-    name:'ZuShé Mind',short_name:'ZuShé',start_url:'.',display:'standalone',
+    name:'ZuShé Mind',short_name:'ZuShé',id:'./index.html',start_url:'./index.html',scope:'./',display:'standalone',
     background_color:'#05070D',theme_color:'#05070D',
     icons:[
       {src:dataUrl,sizes:'192x192',type:'image/png',purpose:'any maskable'},
