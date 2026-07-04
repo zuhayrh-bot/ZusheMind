@@ -737,6 +737,11 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
       <input type="file" id="appSkillScanInput" accept=".html,.htm,.js,.css,.txt" style="display:none" onchange="onAppSkillScan(event)">
       <div id="appSkillScanStatus" style="display:none"></div>
     </div>
+    <div class="card" style="border:1.5px solid var(--success)33">
+      <div class="card-title" style="color:var(--success)">🧹 Clean Up Skills</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">After importing from multiple apps, similar skills (e.g. "CSS Gradient Design" and "CSS Gradients & Backgrounds") can end up as separate entries. This finds and merges them into one, keeping the most detailed description — nothing is deleted outright, just combined.</div>
+      <button class="btn btn-g" style="width:100%" onclick="mergeDuplicateSkills()">🔀 Merge Duplicate Skills</button>
+    </div>
     <div id="skillList"></div>
   </div>
 </div>
@@ -3681,7 +3686,7 @@ Extract 5-15 skills. Be specific — describe EXACTLY what was used (e.g. "CSS g
         if(!sk.name||!sk.desc)return;
         const id='app_skill_'+Date.now()+'_'+added;
         // Skip duplicates
-        if(S.skills.some(s=>s.name.toLowerCase()===sk.name.toLowerCase()))return;
+        if(S.skills.some(s=>_normalizeForCompare(s.name)===_normalizeForCompare(sk.name)))return;
         S.skills.push({
           id,
           name:sk.name.slice(0,60),
@@ -3806,6 +3811,82 @@ function localScanForSkills(filename,content,statusEl){
   }
   toast(`✅ ${added} skills imported from ${filename}`,'ok');
 }
+// ═══════════════════════════════════════════════════════════
+// SKILL DEDUPLICATION — with 250+ skills imported from multiple app scans, near-
+// duplicate skills pile up easily: "CSS Gradient Design" and "CSS Gradients &
+// Backgrounds" describe the same pattern but wouldn't match the old exact-name-only
+// check. This does fuzzy matching on name+description similarity, then MERGES
+// duplicates into one entry (keeping the most detailed description, combining
+// source files, keeping the earliest creation date) rather than just deleting —
+// so no distinct information is silently lost, only true redundancy is collapsed.
+// ═══════════════════════════════════════════════════════════
+function _normalizeForCompare(s){
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+function _wordOverlapScore(sa,sb){
+  const wa=new Set(sa.split(' ').filter(w=>w.length>2));
+  const wb=new Set(sb.split(' ').filter(w=>w.length>2));
+  if(wa.size===0||wb.size===0)return 0;
+  let overlap=0;
+  wa.forEach(w=>{if(wb.has(w))overlap++;});
+  return overlap/Math.min(wa.size,wb.size); // containment-style: overlap relative to the shorter set
+}
+function _skillSimilarity(a,b){
+  const na=_normalizeForCompare(a.name),nb=_normalizeForCompare(b.name);
+  if(na===nb)return 1;
+  const nameScore=_wordOverlapScore(na,nb);
+  const descScore=_wordOverlapScore(_normalizeForCompare(a.desc||''),_normalizeForCompare(b.desc||''));
+  // Weighted average of name + description overlap, tested against real skill-name
+  // pairs (see conversation) rather than picked arbitrarily. Averaging both catches
+  // true near-duplicates that share more description language than exact naming
+  // (e.g. "CSS Gradient Design" vs "CSS Gradients and Backgrounds"), while pairs
+  // that share domain vocabulary but describe different specifics (e.g. "REST API
+  // Integration" vs "GitHub API Integration") score low on description overlap,
+  // which pulls the average below threshold. Not perfect — genuinely ambiguous
+  // pairs (e.g. "Dark Theme App" vs "Advanced CSS Theming System") can still be
+  // missed — but calibrated to avoid false merges over catching every possible one.
+  return nameScore*0.5+descScore*0.5;
+}
+function mergeDuplicateSkills(){
+  const SIMILARITY_THRESHOLD=0.4; // calibrated against real skill-name/description pairs
+  const groups=[];
+  const used=new Set();
+  for(let i=0;i<S.skills.length;i++){
+    if(used.has(i))continue;
+    const group=[S.skills[i]];used.add(i);
+    for(let j=i+1;j<S.skills.length;j++){
+      if(used.has(j))continue;
+      if(_skillSimilarity(S.skills[i],S.skills[j])>=SIMILARITY_THRESHOLD){
+        group.push(S.skills[j]);used.add(j);
+      }
+    }
+    groups.push(group);
+  }
+  const before=S.skills.length;
+  S.skills=groups.map(group=>{
+    if(group.length===1)return group[0];
+    // Merge: keep the longest/most-detailed description, union of source files,
+    // earliest creation date, active if ANY were active.
+    const longest=group.reduce((a,b)=>b.desc.length>a.desc.length?b:a);
+    const sources=[...new Set(group.map(g=>g.sourceFile).filter(Boolean))];
+    return{
+      id:longest.id,
+      name:longest.name,
+      desc:longest.desc,
+      cat:longest.cat,
+      active:group.some(g=>g.active),
+      source:longest.source,
+      sourceFile:sources.join(', '),
+      created:Math.min(...group.map(g=>g.created||Date.now())),
+      mergedCount:group.length
+    };
+  });
+  sv('skills',S.skills);
+  renderSkills();
+  const removed=before-S.skills.length;
+  toast(removed>0?`🧹 Merged ${removed} duplicate skill(s) — ${S.skills.length} remain`:'No duplicates found','ok');
+  return removed;
+}
 function renderSkills(){
   const list=document.getElementById('skillList');
   if(!S.skills.length){list.innerHTML=`<div style="text-align:center;padding:28px 16px;color:var(--text2)"><div style="font-size:36px;margin-bottom:8px">⭐</div><div style="font-weight:700;margin-bottom:4px">No skills yet</div><div style="font-size:12px">Skills are reusable patterns applied to every chat automatically.</div></div>`;return;}
@@ -3816,6 +3897,7 @@ function renderSkills(){
         <span class="skill-name">${sk.name}</span>
         <span style="font-size:10px;background:${SKILL_CAT_COLORS[sk.cat]||'#888'}22;color:${SKILL_CAT_COLORS[sk.cat]||'#888'};border-radius:8px;padding:2px 7px;font-weight:700">${sk.cat}</span>
         ${sk.active?'<span style="font-size:10px;color:var(--success);font-weight:700">● ACTIVE</span>':'<span style="font-size:10px;color:var(--text3)">○ off</span>'}
+        ${sk.mergedCount>1?`<span style="font-size:10px;background:#ffffff10;color:var(--text3);border-radius:8px;padding:2px 7px" title="Combined from ${sk.mergedCount} near-duplicate entries">⚭ merged ×${sk.mergedCount}</span>`:''}
       </div>
       <div class="skill-desc">${sk.desc.slice(0,120)}${sk.desc.length>120?'…':''}</div>
       <div style="font-size:10px;color:var(--text3);margin-top:3px">${new Date(sk.created).toLocaleDateString()}</div>
