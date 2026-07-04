@@ -4876,7 +4876,7 @@ function clearChats(){if(!confirm('Clear all chats?'))return;const c=mkChat();S.
 // ═══════════════════════════════════════════════════════════
 // EXPORT / IMPORT ALL DATA
 // ═══════════════════════════════════════════════════════════
-function exportAllData(){
+async function exportAllData(){
   const data={version:'zushemind_v'+APP_BUILD_VERSION.replace(/\./g,'_'),ts:Date.now(),
     memories:S.memories||[],skills:S.skills||[],
     apiKeys:S.apiKeys||{},adminEmail:S.adminEmail||'',
@@ -4884,12 +4884,42 @@ function exportAllData(){
     founderIdeas:S.founderIdeas||[],ghRepos:S.ghRepos||[],
     v5_cats:S.categories||[],v5_pins:S.pinnedMsgs||[]
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const json=JSON.stringify(data,null,2);
+  const filename='zushemind_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  const summary='Backup exported! '+((S.memories||[]).length)+' memories, '+((S.skills||[]).length)+' skills.';
+
+  // File System Access API lets the user pick WHERE to save, with a real native
+  // save dialog — unlike the old <a download> trick below, which silently drops
+  // the file into the browser's default Downloads folder with no dialog and no
+  // visible confirmation, which is exactly why exported backups were "disappearing"
+  // (they were saving fine, just invisibly, into general Downloads every time).
+  // Not supported in every browser (notably Firefox, and inconsistently on some
+  // mobile browsers/PWA contexts), so this is attempted first and falls back to the
+  // old method — which still works, just without the picker — if unavailable or if
+  // the user cancels the picker in a way that throws (vs. a deliberate Cancel).
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({
+        suggestedName:filename,
+        types:[{description:'JSON backup',accept:{'application/json':['.json']}}]
+      });
+      const writable=await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      toast(summary,'ok');
+      return;
+    }catch(e){
+      if(e.name==='AbortError'){toast('Export cancelled','tinfo');return;} // user hit Cancel — respect that, don't fall through to a silent download instead
+      console.warn('showSaveFilePicker failed, falling back to direct download:',e.message);
+      // fall through to legacy method below for any other failure
+    }
+  }
+  const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
-  a.download='zushemind_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.download=filename;
   a.click();URL.revokeObjectURL(url);
-  toast('Backup exported! '+((S.memories||[]).length)+' memories, '+((S.skills||[]).length)+' skills.','ok');
+  toast(summary+' (saved to Downloads — your browser doesn\'t support choosing a folder)','ok');
 }
 function importAllData(e){
   const file=e.target.files[0];if(!file)return;
