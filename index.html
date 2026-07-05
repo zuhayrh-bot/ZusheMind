@@ -487,6 +487,70 @@ html.lite-mode .ai-core .orb-stage,html.lite-mode .gyro,html.lite-mode .core-sph
 html.lite-mode .bubble.bot::before{display:none}
 html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
 
+/* ══════════════════════════════════════════════════════════
+   GLASS TABLET BLOCKS — unified card treatment for every block
+   across the app: chat bubbles, memory, skills, projects, admin
+   (which reuses .card), and settings rows. Purely visual — no
+   markup or JS was changed, only added on top of the existing
+   design so nothing functional is affected.
+══════════════════════════════════════════════════════════ */
+.card,.card-accent,.card-blue,.card-green,.card-purple,.card-teal,.card-yellow,
+.mcard,.mem-item,.pcard,.ptmpl-card,.skill-card,.idea-item,.ph-item,.set-row,
+.tmpl,.cat-folder,.kg-node,.next-step-banner,.bubble.bot,.bubble.user,.cw,.fbub{
+  position:relative;
+  border:none;
+  border-radius:18px;
+  backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6);
+  box-shadow:
+    0 0 0 1px var(--border),
+    -2px -2px 0 1px rgba(255,255,255,.09),
+    2px 3px 0 1px rgba(0,0,0,.24),
+    0 5px 0 0 rgba(0,0,0,.18),
+    0 14px 30px rgba(0,0,0,.45),
+    inset 1px 1px 0 rgba(255,255,255,.07);
+  transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s cubic-bezier(.2,.8,.3,1);
+}
+.card::before,.card-accent::before,.card-blue::before,.card-green::before,.card-purple::before,.card-teal::before,.card-yellow::before,
+.mcard::before,.mem-item::before,.pcard::before,.ptmpl-card::before,.skill-card::before,.idea-item::before,.ph-item::before,.set-row::before,
+.tmpl::before,.cat-folder::before,.kg-node::before,.next-step-banner::before,.bubble.user::before,.cw::before,.fbub::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(135deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 35%,transparent 60%);
+  pointer-events:none;
+}
+.card>*,.card-accent>*,.card-blue>*,.card-green>*,.card-purple>*,.card-teal>*,.card-yellow>*,
+.mcard>*,.mem-item>*,.pcard>*,.ptmpl-card>*,.skill-card>*,.idea-item>*,.ph-item>*,.set-row>*,
+.tmpl>*,.cat-folder>*,.kg-node>*,.next-step-banner>*,.bubble.user>*,.bubble.bot>*,.cw>*,.fbub>*{
+  position:relative;z-index:1;
+}
+/* clickable blocks get the same tactile lift the rest of the app already uses
+   — restricted to real hover-capable pointers so a tap on a touchscreen can't
+   leave a card stuck in its ":hover" lifted state (a known Android Chrome quirk) */
+@media (hover:hover) and (pointer:fine){
+  .mcard:hover,.pcard:hover,.ptmpl-card:hover,.tmpl:hover,.cat-folder:hover,.kg-node:hover,.next-step-banner:hover,.ph-item:hover{
+    transform:translateY(-3px);
+    box-shadow:
+      0 0 0 1px var(--border2),
+      -2px -2px 0 1px rgba(255,255,255,.12),
+      2px 3px 0 1px rgba(0,0,0,.26),
+      0 6px 0 0 rgba(0,0,0,.2),
+      0 18px 36px rgba(0,0,0,.5),
+      inset 1px 1px 0 rgba(255,255,255,.1);
+  }
+}
+/* keep each card variant's color identity as an outer glow instead of a flat border */
+.card-accent{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(232,134,90,.16)}
+.card-blue{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(74,158,255,.16)}
+.card-green{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(94,207,138,.16)}
+.card-purple{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(124,111,247,.16)}
+.card-teal{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(62,207,178,.16)}
+.card-yellow{box-shadow:0 0 0 1px var(--border),-2px -2px 0 1px rgba(255,255,255,.09),2px 3px 0 1px rgba(0,0,0,.24),0 5px 0 0 rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.45),inset 1px 1px 0 rgba(255,255,255,.07),0 0 22px rgba(247,217,111,.14)}
+html.lite-mode .card,html.lite-mode .card-accent,html.lite-mode .card-blue,html.lite-mode .card-green,html.lite-mode .card-purple,html.lite-mode .card-teal,html.lite-mode .card-yellow,
+html.lite-mode .mcard,html.lite-mode .mem-item,html.lite-mode .pcard,html.lite-mode .ptmpl-card,html.lite-mode .skill-card,html.lite-mode .idea-item,html.lite-mode .ph-item,html.lite-mode .set-row,
+html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lite-mode .next-step-banner,html.lite-mode .bubble.bot,html.lite-mode .bubble.user,html.lite-mode .cw,html.lite-mode .fbub{
+  backdrop-filter:none;-webkit-backdrop-filter:none;transition:none;
+}
+
 /* ===== Zushé Mind loading screen styles ===== */
 
   :root{
@@ -1098,57 +1162,6 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
   </div>
 </div>
 
-<!-- DNA ENGINE -->
-<div class="screen" id="screen-dna">
-  <div class="scr-hdr"><div class="scr-title">App DNA</div><div class="scr-sub">Upload files or paste GitHub repos to extract your style</div></div>
-  <div class="scr-body">
-
-    <!-- ╔══════════════════════════════════════╗ -->
-    <!-- ║       🔗 GITHUB IMPORT BLOCK        ║ -->
-    <!-- ╚══════════════════════════════════════╝ -->
-    <div class="card" id="ghBlock" style="border:1.5px solid var(--accent2);background:linear-gradient(135deg,#1a1040 0%,#0d0d1a 100%)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent2)"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        <div>
-          <div style="font-size:14px;font-weight:800;color:var(--accent2);letter-spacing:.3px">GitHub Import</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:1px">Paste any public repo URL — ZuShé Mind imports all skills automatically</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
-        <input class="ti" id="ghUrl" placeholder="https://github.com/username/repo" style="flex:1;border-color:var(--accent2)44" onkeydown="if(event.key==='Enter')analyzeGitHub()">
-        <button class="btn btn-purple" id="ghBtn" onclick="analyzeGitHub()" style="white-space:nowrap;background:var(--accent2);color:#fff">🔍 Import</button>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <span style="font-size:10px;color:var(--accent3);background:var(--accent3)15;border-radius:6px;padding:2px 7px">⚡ Auto-imports as Skill</span>
-        <span style="font-size:10px;color:var(--text3);background:#ffffff08;border-radius:6px;padding:2px 7px">📊 Extracts tech stack + DNA</span>
-        <span style="font-size:10px;color:var(--text3);background:#ffffff08;border-radius:6px;padding:2px 7px">🚀 Codespaces setup guide</span>
-      </div>
-    </div>
-
-    <!-- GITHUB RESULT -->
-    <div id="ghResult" style="display:none"></div>
-
-    <!-- FILE UPLOAD -->
-    <div class="card">
-      <div class="card-title">🧬 Upload File for DNA Analysis</div>
-      <div class="card-body" style="margin-bottom:10px">Upload an HTML/CSS/JS file to extract colors, typography, layout, and coding patterns.</div>
-      <input type="file" id="dnaFileInput" accept=".html,.css,.js,.txt" style="display:none" onchange="onDNAUpload(event)">
-      <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="document.getElementById('dnaFileInput').click()" style="flex:1">📂 Upload App File</button>
-        <button class="btn btn-d" onclick="clearDNA()" style="flex:1">🗑 Clear DNA</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="trow">
-        <div><div style="font-weight:700;font-size:14px">🎨 Use My Style by Default</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Apply DNA to every new app built</div></div>
-        <div class="tog" id="dnaToggle" onclick="toggleDNA()"><div class="tog-thumb"></div></div>
-      </div>
-    </div>
-    <div id="dnaProfile"></div>
-    <div class="card card-purple" id="dnaHistory" style="display:none"></div>
-  </div>
-</div>
 
 <!-- MODELS -->
 <div class="screen" id="screen-models">
@@ -1183,33 +1196,17 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
         <div style="margin-top:12px;font-size:11px;color:var(--text2);line-height:1.7">
           Runs fully in this browser tab via WebAssembly — no server call, no cloud tokens, no PocketPal needed. First load downloads/caches the file on your phone; after that it reloads automatically, even offline.
         </div>
-        <div style="margin-top:12px;font-weight:700;font-size:12px;color:var(--text)">📥 Direct downloads</div>
-        <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6">
-          If a download stalls partway with no error (a known, widely-reported issue with Hugging Face's CDN on mobile browsers — not specific to this app), try: (1) tapping "Open in new tab" instead, which hands it to Chrome's Download Manager with proper resume support, or (2) switching to Wi-Fi if on mobile data, or (3) trying the smaller model first.
-        </div>
+        <div style="margin-top:12px;font-weight:700;font-size:12px;color:var(--text)">📥 Direct downloads (tap → saves to Downloads)</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
+          <a href="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
             <b style="font-size:12.5px">Qwen2.5 0.5B Instruct</b> <span style="color:var(--text2);font-size:11px">— 491MB, fastest, simple tasks only</span>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <a href="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
-              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true','qwen2.5-0.5b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
-            </div>
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
+          </a>
+          <a href="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
             <b style="font-size:12.5px">Qwen2.5 1.5B Instruct</b> <span style="color:var(--text2);font-size:11px">— 1.12GB, noticeably better, slower</span>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <a href="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
-              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true','qwen2.5-1.5b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
-            </div>
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
+          </a>
+          <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
             <b style="font-size:12.5px">Qwen2.5 3B Instruct</b> <span style="color:var(--text2);font-size:11px">— 2.1GB, best quality of the three, slowest</span>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
-              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true','qwen2.5-3b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
-            </div>
-          </div>
-          <div id="modelDlProgress" style="display:none;font-size:11px;color:var(--text2);margin-top:4px;font-family:var(--mono)"></div>
+          </a>
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6">
           Tapping either link downloads the exact q4_k_m GGUF file straight from Qwen's official Hugging Face repo — no account, no huggingface-cli, nothing else to set up. It lands in your phone's Downloads folder; come back here and tap "📂 Load Model File" to pick it. Inference is CPU-only on the A52s — expect single-digit tokens/sec, so replies take real seconds and long ones can take a minute+. Much weaker than the cloud models above; good for quick rewrites/summaries, not complex coding.
@@ -1230,7 +1227,7 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
     <div class="tab-btn" onclick="switchAdminTab('founder')">🚀 Founder</div>
     <div class="tab-btn" onclick="switchAdminTab('kb')">🧠 App KB</div>
     <div class="tab-btn" onclick="switchAdminTab('keys')">🎟 Keys</div>
-    <div class="tab-btn" onclick="go('dna')">🧬 App DNA</div>
+    <div class="tab-btn" onclick="switchAdminTab('dna')">🧬 App DNA</div>
   </div>
   <div class="tab-panel active" id="tab-identity">
     <div class="card card-accent"><div class="card-title" style="color:var(--accent)">🔑 Your Admin Identity</div><div class="card-body" id="adminIdInfo"></div></div>
@@ -1266,6 +1263,44 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
       <div style="display:flex;flex-direction:column;gap:8px" id="refKeys"></div>
       <div style="margin-top:10px;font-size:11px;color:var(--text3)" id="keyTimer">Next rotation in: --:--</div>
     </div>
+  </div>
+  <div class="tab-panel" id="tab-dna">
+    <div class="card" id="ghBlock" style="border:1.5px solid var(--accent2);background:linear-gradient(135deg,#1a1040 0%,#0d0d1a 100%)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent2)"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--accent2);letter-spacing:.3px">GitHub Import</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">Paste any public repo URL — ZuShé Mind imports all skills automatically</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+        <input class="ti" id="ghUrl" placeholder="https://github.com/username/repo" style="flex:1;border-color:var(--accent2)44" onkeydown="if(event.key==='Enter')analyzeGitHub()">
+        <button class="btn btn-purple" id="ghBtn" onclick="analyzeGitHub()" style="white-space:nowrap;background:var(--accent2);color:#fff">🔍 Import</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--accent3);background:var(--accent3)15;border-radius:6px;padding:2px 7px">⚡ Auto-imports as Skill</span>
+        <span style="font-size:10px;color:var(--text3);background:#ffffff08;border-radius:6px;padding:2px 7px">📊 Extracts tech stack + DNA</span>
+        <span style="font-size:10px;color:var(--text3);background:#ffffff08;border-radius:6px;padding:2px 7px">🚀 Codespaces setup guide</span>
+      </div>
+    </div>
+    <div id="ghResult" style="display:none"></div>
+    <div class="card">
+      <div class="card-title">🧬 Upload File for DNA Analysis</div>
+      <div class="card-body" style="margin-bottom:10px">Upload an HTML/CSS/JS file to extract colors, typography, layout, and coding patterns.</div>
+      <input type="file" id="dnaFileInput" accept=".html,.css,.js,.txt" style="display:none" onchange="onDNAUpload(event)">
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="document.getElementById('dnaFileInput').click()" style="flex:1">📂 Upload App File</button>
+        <button class="btn btn-d" onclick="clearDNA()" style="flex:1">🗑 Clear DNA</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="trow">
+        <div><div style="font-weight:700;font-size:14px">🎨 Use My Style by Default</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Apply DNA to every new app built</div></div>
+        <div class="tog" id="dnaToggle" onclick="toggleDNA()"><div class="tog-thumb"></div></div>
+      </div>
+    </div>
+    <div id="dnaProfile"></div>
+    <div class="card card-purple" id="dnaHistory" style="display:none"></div>
   </div>
 </div>
 
@@ -1696,65 +1731,6 @@ function renderLM(){
         :'No model loaded yet. Pick a small GGUF file (300MB–1GB) from your Downloads folder.';
 }
 
-// ═══════════════════════════════════════════════════════════
-// In-page model download with progress + visible errors. A plain cross-origin
-// <a href> download of a large file is known to silently stall on some mobile
-// Chrome versions — it hands off to an in-tab stream rather than the OS Download
-// Manager, and on any network hiccup (common with HF's CDN on large files — this
-// is a widely-reported HF-side issue, not unique to this app) it just stops with
-// zero error surfaced anywhere. Using fetch() + a reader gives us: (1) a real
-// progress percentage so you can tell it's alive vs. stalled, (2) a caught, visible
-// error the moment the stream actually fails, instead of silent nothing, and
-// (3) a completed Blob we explicitly save via <a download>, only once fully done.
-// This does NOT fix HF-side connection drops (nothing client-side can) — but it
-// replaces "silently stops, no idea why" with "clearly stopped at 340MB/491MB,
-// here's the error" plus a manual retry, which is the realistic ceiling here.
-// ═══════════════════════════════════════════════════════════
-async function fetchDownloadModel(url,filename,btn){
-  const progEl=document.getElementById('modelDlProgress');
-  const origText=btn.textContent;
-  btn.disabled=true;btn.textContent='Starting…';
-  progEl.style.display='block';
-  progEl.textContent='Connecting…';
-  try{
-    const res=await fetch(url);
-    if(!res.ok)throw new Error('Server returned HTTP '+res.status);
-    const total=parseInt(res.headers.get('Content-Length')||'0',10);
-    const reader=res.body.getReader();
-    const chunks=[];
-    let received=0;
-    let lastUpdate=Date.now();
-    while(true){
-      const{done,value}=await reader.read();
-      if(done)break;
-      chunks.push(value);
-      received+=value.length;
-      // Throttle UI updates to ~4/sec — updating on every chunk (which can fire
-      // hundreds of times/sec) would visibly jank the page on a mid-range phone.
-      if(Date.now()-lastUpdate>250){
-        const mb=(received/1048576).toFixed(1);
-        const totalMb=total?(total/1048576).toFixed(0):'?';
-        const pct=total?Math.round(received/total*100):null;
-        progEl.textContent=`Downloading… ${mb}MB / ${totalMb}MB${pct!==null?' ('+pct+'%)':''}`;
-        btn.textContent=pct!==null?pct+'%':'Downloading…';
-        lastUpdate=Date.now();
-      }
-    }
-    progEl.textContent='Saving file…';
-    const blob=new Blob(chunks);
-    const blobUrl=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=blobUrl;a.download=filename;a.click();
-    URL.revokeObjectURL(blobUrl);
-    progEl.textContent=`✅ Done — ${(blob.size/1048576).toFixed(1)}MB saved as ${filename}. Tap "📂 Load Model File" above and pick it from Downloads.`;
-    btn.textContent=origText;btn.disabled=false;
-  }catch(e){
-    // This is the actual fix for the silent-failure complaint: whatever goes
-    // wrong — connection drop, timeout, CORS, offline — shows up here instead
-    // of just... stopping with no trace.
-    progEl.textContent=`❌ Download failed: ${e.message}. This is usually a Hugging Face CDN connection drop (known issue with large files, not specific to this app) — try again, switch to Wi-Fi, or use "Open in new tab" instead so Chrome's own Download Manager handles retries.`;
-    btn.textContent=origText;btn.disabled=false;
-  }
-}
 async function lmPickFile(input){
   const file=input.files&&input.files[0];
   input.value='';
@@ -5200,13 +5176,14 @@ function genKey(len=8){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.f
 function genRefKeys(){S.refKeys={basic:'BASIC-'+genKey(),mid:'PRO-'+genKey(),premium:'VIP-'+genKey()};S.keyRotateAt=Date.now()+5*60*1000;renderAdminKeys();}
 function switchAdminTab(tab){
   S.activeAdminTab=tab;
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{const tabs=['identity','founder','kb','keys'];b.className='tab-btn'+(tabs[i]===tab?' active':'');});
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{const tabs=['identity','founder','kb','keys','dna'];b.className='tab-btn'+(tabs[i]===tab?' active':'');});
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   const el=document.getElementById('tab-'+tab);if(el)el.classList.add('active');
   if(tab==='founder'){renderFounderIdeas();renderFounderPrefs();}
   if(tab==='kb')renderAdminKB();
   if(tab==='keys'){if(!S.refKeys.basic)genRefKeys();else renderAdminKeys();}
   if(tab==='identity')renderAdminIdentity();
+  if(tab==='dna')renderDNA();
 }
 function renderAdminIdentity(){
   const email=S.adminEmail||'(not set — go to Settings)';
@@ -5246,7 +5223,7 @@ function renderAdminKeys(){
   },1000);
 }
 function renderAdmin(){
-  renderAdminIdentity();renderFounderIdeas();renderFounderPrefs();renderAdminKB();
+  renderAdminIdentity();renderFounderIdeas();renderFounderPrefs();renderAdminKB();renderDNA();
   if(!S.refKeys.basic)genRefKeys();else renderAdminKeys();
   if(S.adminEmail)document.getElementById('adminBadge').style.display='flex';
 }
@@ -5450,12 +5427,11 @@ function go(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById('screen-'+name);if(el)el.classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const navId=name==='projdetail'?'projects':name==='dna'?'admin':name;
+  const navId=name==='projdetail'?'projects':name;
   const nav=document.getElementById('nav-'+navId);if(nav)nav.classList.add('active');
   if(name==='projects'){renderProjList();renderTemplates();}
   if(name==='memory')renderMemory();
   if(name==='skills')renderSkills();
-  if(name==='dna')renderDNA();
   if(name==='models')renderModels();
   if(name==='admin')renderAdmin();
   if(name==='plan')renderPlan();
