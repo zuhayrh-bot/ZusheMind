@@ -1183,17 +1183,33 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
         <div style="margin-top:12px;font-size:11px;color:var(--text2);line-height:1.7">
           Runs fully in this browser tab via WebAssembly — no server call, no cloud tokens, no PocketPal needed. First load downloads/caches the file on your phone; after that it reloads automatically, even offline.
         </div>
-        <div style="margin-top:12px;font-weight:700;font-size:12px;color:var(--text)">📥 Direct downloads (tap → saves to Downloads)</div>
+        <div style="margin-top:12px;font-weight:700;font-size:12px;color:var(--text)">📥 Direct downloads</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6">
+          If a download stalls partway with no error (a known, widely-reported issue with Hugging Face's CDN on mobile browsers — not specific to this app), try: (1) tapping "Open in new tab" instead, which hands it to Chrome's Download Manager with proper resume support, or (2) switching to Wi-Fi if on mobile data, or (3) trying the smaller model first.
+        </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          <a href="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
             <b style="font-size:12.5px">Qwen2.5 0.5B Instruct</b> <span style="color:var(--text2);font-size:11px">— 491MB, fastest, simple tasks only</span>
-          </a>
-          <a href="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <a href="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
+              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true','qwen2.5-0.5b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
+            </div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
             <b style="font-size:12.5px">Qwen2.5 1.5B Instruct</b> <span style="color:var(--text2);font-size:11px">— 1.12GB, noticeably better, slower</span>
-          </a>
-          <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true" style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-decoration:none;color:var(--text)">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <a href="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
+              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true','qwen2.5-1.5b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
+            </div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px">
             <b style="font-size:12.5px">Qwen2.5 3B Instruct</b> <span style="color:var(--text2);font-size:11px">— 2.1GB, best quality of the three, slowest</span>
-          </a>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true" target="_blank" rel="noopener" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:8px;text-decoration:none;font-size:12px;font-weight:700">Open in new tab</a>
+              <button class="btn btn-g" style="flex:1;font-size:12px" onclick="fetchDownloadModel('https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true','qwen2.5-3b-instruct-q4_k_m.gguf',this)">In-page (with progress)</button>
+            </div>
+          </div>
+          <div id="modelDlProgress" style="display:none;font-size:11px;color:var(--text2);margin-top:4px;font-family:var(--mono)"></div>
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6">
           Tapping either link downloads the exact q4_k_m GGUF file straight from Qwen's official Hugging Face repo — no account, no huggingface-cli, nothing else to set up. It lands in your phone's Downloads folder; come back here and tap "📂 Load Model File" to pick it. Inference is CPU-only on the A52s — expect single-digit tokens/sec, so replies take real seconds and long ones can take a minute+. Much weaker than the cloud models above; good for quick rewrites/summaries, not complex coding.
@@ -1680,6 +1696,65 @@ function renderLM(){
         :'No model loaded yet. Pick a small GGUF file (300MB–1GB) from your Downloads folder.';
 }
 
+// ═══════════════════════════════════════════════════════════
+// In-page model download with progress + visible errors. A plain cross-origin
+// <a href> download of a large file is known to silently stall on some mobile
+// Chrome versions — it hands off to an in-tab stream rather than the OS Download
+// Manager, and on any network hiccup (common with HF's CDN on large files — this
+// is a widely-reported HF-side issue, not unique to this app) it just stops with
+// zero error surfaced anywhere. Using fetch() + a reader gives us: (1) a real
+// progress percentage so you can tell it's alive vs. stalled, (2) a caught, visible
+// error the moment the stream actually fails, instead of silent nothing, and
+// (3) a completed Blob we explicitly save via <a download>, only once fully done.
+// This does NOT fix HF-side connection drops (nothing client-side can) — but it
+// replaces "silently stops, no idea why" with "clearly stopped at 340MB/491MB,
+// here's the error" plus a manual retry, which is the realistic ceiling here.
+// ═══════════════════════════════════════════════════════════
+async function fetchDownloadModel(url,filename,btn){
+  const progEl=document.getElementById('modelDlProgress');
+  const origText=btn.textContent;
+  btn.disabled=true;btn.textContent='Starting…';
+  progEl.style.display='block';
+  progEl.textContent='Connecting…';
+  try{
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('Server returned HTTP '+res.status);
+    const total=parseInt(res.headers.get('Content-Length')||'0',10);
+    const reader=res.body.getReader();
+    const chunks=[];
+    let received=0;
+    let lastUpdate=Date.now();
+    while(true){
+      const{done,value}=await reader.read();
+      if(done)break;
+      chunks.push(value);
+      received+=value.length;
+      // Throttle UI updates to ~4/sec — updating on every chunk (which can fire
+      // hundreds of times/sec) would visibly jank the page on a mid-range phone.
+      if(Date.now()-lastUpdate>250){
+        const mb=(received/1048576).toFixed(1);
+        const totalMb=total?(total/1048576).toFixed(0):'?';
+        const pct=total?Math.round(received/total*100):null;
+        progEl.textContent=`Downloading… ${mb}MB / ${totalMb}MB${pct!==null?' ('+pct+'%)':''}`;
+        btn.textContent=pct!==null?pct+'%':'Downloading…';
+        lastUpdate=Date.now();
+      }
+    }
+    progEl.textContent='Saving file…';
+    const blob=new Blob(chunks);
+    const blobUrl=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=blobUrl;a.download=filename;a.click();
+    URL.revokeObjectURL(blobUrl);
+    progEl.textContent=`✅ Done — ${(blob.size/1048576).toFixed(1)}MB saved as ${filename}. Tap "📂 Load Model File" above and pick it from Downloads.`;
+    btn.textContent=origText;btn.disabled=false;
+  }catch(e){
+    // This is the actual fix for the silent-failure complaint: whatever goes
+    // wrong — connection drop, timeout, CORS, offline — shows up here instead
+    // of just... stopping with no trace.
+    progEl.textContent=`❌ Download failed: ${e.message}. This is usually a Hugging Face CDN connection drop (known issue with large files, not specific to this app) — try again, switch to Wi-Fi, or use "Open in new tab" instead so Chrome's own Download Manager handles retries.`;
+    btn.textContent=origText;btn.disabled=false;
+  }
+}
 async function lmPickFile(input){
   const file=input.files&&input.files[0];
   input.value='';
