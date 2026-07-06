@@ -534,15 +534,19 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
     flex-direction:column;
     align-items:stretch;
     justify-content:center;
-    gap:6px;
+    gap:10px;
     width:76px;
     flex-shrink:0;
     align-self:stretch;
-    margin:12px 0 12px 8px;
-    padding:14px 4px;
+    margin:6px 0 6px 8px;
+    padding:22px 4px 10px;
     border-radius:20px;
   }
   .ni{flex:0 1 auto}
+  /* the AI Core orb bounces as part of its idle animation — give it
+     extra clearance from the buttons above (Build/Memory) and below
+     (Skills/Admin) instead of the portrait "-24px overlap" treatment */
+  .ni.ni-core{margin-top:8px;margin-bottom:8px}
 
   /* screen headers get a bit shorter/thinner so more of the actual
      content is visible on limited landscape height */
@@ -612,8 +616,9 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
    content fits comfortably */
 @media (orientation:landscape) and (max-height:430px){
   .hdr{padding:6px 10px}
-  .bnav{padding:8px 3px;gap:4px}
+  .bnav{padding:14px 3px 6px;gap:6px}
   .ni-lbl{font-size:8px}
+  .ni.ni-core{margin-top:5px;margin-bottom:5px}
   .scr-hdr{padding:7px 13px 6px}
   .scr-title{font-size:15px}
 }
@@ -1610,7 +1615,7 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
     </div>
     <div class="set-row">
       <div class="set-lbl">📱 App Info</div>
-      <div class="card-body"><b>ZuShé Mind v<span id="aboutVersion">7.9.5</span></b> — Offline-First Personal AI Builder<br>Device: Samsung Galaxy A52s<br>Storage: IndexedDB + localStorage<br><br><b>Install as App:</b> Chrome ⋮ → Add to Home Screen (PWA — works offline, full screen)</div>
+      <div class="card-body"><b>ZuShé Mind v<span id="aboutVersion">7.9.5</span></b> — Offline-First Personal AI Builder<br>Device: Samsung Galaxy A52s<br>Storage: IndexedDB + localStorage</div>
     </div>
   </div>
 </div>
