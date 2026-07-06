@@ -488,6 +488,66 @@ html.lite-mode .bubble.bot::before{display:none}
 html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
 
 /* ══════════════════════════════════════════════════════════
+   LANDSCAPE MODE — dual-pane layout
+   Portrait: unchanged (sidebar is an off-canvas overlay, single
+   column screens, bottom nav — exactly as before).
+   Landscape: the existing chat-history sidebar becomes a
+   permanently-docked left pane (no more slide-over/backdrop),
+   and the main content sits beside it as a second pane. List/card
+   screens (Memory, Skills, Admin, Projects, Settings, etc.) flow
+   into two columns to use the extra width; the chat conversation
+   itself stays single-column since that's the natural reading
+   layout for a message thread.
+══════════════════════════════════════════════════════════ */
+.main-pane{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;height:100%}
+
+@media (orientation:landscape){
+  .app{flex-direction:row;max-width:none;width:100%}
+
+  /* sidebar becomes a permanent left pane instead of an off-canvas drawer */
+  .sidebar{
+    position:relative;
+    top:auto;left:auto;bottom:auto;
+    transform:none;
+    width:260px;
+    flex-shrink:0;
+    box-shadow:2px 0 24px rgba(0,0,0,.35);
+  }
+  .overlay{display:none!important}
+  /* hamburger toggle is redundant once the sidebar is always visible */
+  .hdr .icon-btn[onclick="openSB()"]{display:none}
+
+  .main-pane{min-width:0}
+
+  /* the repeated-card lists (memory, skills, projects, templates, founder
+     ideas, knowledge base, prompt history) each live inside their own
+     wrapper element — that's what actually needs to flow into two columns
+     to use the extra landscape width. .scr-body itself stays normal block
+     flow so the few static action-cards above each list stay full-width. */
+  #memList,#skillList,#projList,#tmplGrid,#founderIdeas,#appKB,#promptHistList{
+    column-count:2;
+    column-gap:14px;
+  }
+  #memList>*,#skillList>*,#projList>*,#tmplGrid>*,#founderIdeas>*,#appKB>*,#promptHistList>*{
+    -webkit-column-break-inside:avoid;
+    break-inside:avoid;
+    margin-bottom:13px;
+  }
+}
+@media (orientation:landscape) and (min-width:481px){
+  .app{height:100dvh}
+}
+
+/* short landscape phone screens: trim vertical chrome so content fits */
+@media (orientation:landscape) and (max-height:430px){
+  .hdr{padding:6px 10px}
+  .bnav{margin:0 7px 6px;padding:5px 3px 6px}
+  .ni-lbl{font-size:8px}
+  .scr-hdr{padding:9px 13px 7px}
+}
+
+
+/* ══════════════════════════════════════════════════════════
    GLASS TABLET BLOCKS — unified card treatment for every block
    across the app: chat bubbles, memory, skills, projects, admin
    (which reuses .card), and settings rows. Purely visual — no
@@ -947,6 +1007,7 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
   <input type="file" id="sbProjUploadInput" accept=".html,.htm,text/html" style="display:none" onchange="onSidebarUploadApp(event)">
   <div class="sb-list" id="chatList"></div>
 </div>
+<div class="main-pane">
 <div class="hdr">
   <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;flex:1 1 auto">
     <div class="icon-btn" onclick="openSB()" style="flex-shrink:0">☰</div>
@@ -1666,6 +1727,7 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
 
 <!-- TOOLS DROPDOWN — inside .app, z-index above everything -->
 
+</div>
 </div>
 <script>
 // ═══════════════════════════════════════════════════════════
