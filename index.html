@@ -236,8 +236,8 @@ textarea.ti{resize:vertical;min-height:70px;line-height:1.5}
 .fbadge{font-size:10px;color:var(--success);font-weight:700;border:1px solid rgba(94,207,138,.4);border-radius:10px;padding:2px 7px}
 .pbadge{font-size:10px;color:var(--accent4);border:1px solid rgba(247,217,111,.3);border-radius:10px;padding:2px 7px}
 .slbl{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;padding:3px 0}
-.mem-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;display:flex;align-items:flex-start;gap:8px}
-.mem-text{font-size:13px;flex:1;line-height:1.5}
+.mem-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;min-width:0;overflow:hidden}
+.mem-text{font-size:13px;flex:1;line-height:1.5;min-width:0;overflow-wrap:anywhere;word-break:break-word}
 .mem-del{color:var(--danger);font-size:14px;cursor:pointer;padding:2px;flex-shrink:0}
 .pcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .18s}
 .pcard:hover{border-color:var(--accent)}
@@ -499,7 +499,9 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
    itself stays single-column since that's the natural reading
    layout for a message thread.
 ══════════════════════════════════════════════════════════ */
-.main-pane{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;height:100%}
+.main-pane{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;height:100%;order:1}
+.sidebar{order:0}
+.bnav{order:2}
 
 @media (orientation:landscape){
   .app{flex-direction:row;max-width:none;width:100%}
@@ -512,12 +514,41 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
     width:260px;
     flex-shrink:0;
     box-shadow:2px 0 24px rgba(0,0,0,.35);
+    overflow-y:auto;
   }
+  /* on short landscape screens the row of fixed buttons above the chat
+     list (New Chat…Settings…Projects) can be taller than the sidebar
+     itself; let the whole sidebar scroll as one unit instead of losing
+     access to whatever falls below the visible edge */
+  .sb-list{flex:none;overflow-y:visible}
   .overlay{display:none!important}
   /* hamburger toggle is redundant once the sidebar is always visible */
   .hdr .icon-btn[onclick="openSB()"]{display:none}
 
-  .main-pane{min-width:0}
+  .main-pane{min-width:0;order:2}
+
+  /* nav becomes an upright rail sitting between the sidebar and the main
+     content, instead of a bar docked to the bottom of the screen */
+  .bnav{
+    order:1;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:center;
+    gap:6px;
+    width:76px;
+    flex-shrink:0;
+    align-self:stretch;
+    margin:12px 0 12px 8px;
+    padding:14px 4px;
+    border-radius:20px;
+  }
+  .ni{flex:0 1 auto}
+
+  /* screen headers get a bit shorter/thinner so more of the actual
+     content is visible on limited landscape height */
+  .scr-hdr{padding:10px 15px 8px}
+  .scr-title{font-size:17px}
+  .scr-sub{font-size:11px;margin-top:2px}
 
   /* the repeated-card lists (memory, skills, projects, templates, founder
      ideas, knowledge base, prompt history) each live inside their own
@@ -533,17 +564,58 @@ html.lite-mode .ai-core-status .sdot2{animation:none!important;opacity:1}
     break-inside:avoid;
     margin-bottom:13px;
   }
+
+  /* header: trim so the ZuShé Mind bar takes less vertical room */
+  .hdr{padding:4px 10px}
+  .logo-mark{width:22px;height:22px;font-size:11px;border-radius:6px}
+  .logo-text{font-size:13px}
+  .model-pill{padding:2px 7px}
+  .admin-badge{font-size:9px;padding:1px 6px}
+
+  /* Build screen: search bar sits right next to the "Build" title
+     (using the empty space that used to be wasted there), and the
+     filter chips get their own full-width row that no longer scrolls */
+  #screen-projects .scr-hdr{padding:6px 13px}
+  #screen-projects .scr-title{font-size:14px}
+  #screen-projects .scr-sub{font-size:9px;margin-top:1px;white-space:nowrap}
+  #screen-projects .scr-hdr .icon-btn{width:24px;height:24px;font-size:12px!important}
+  #projRow1{flex-wrap:nowrap!important}
+  #projSearchWrap{order:0!important;flex:1 1 auto!important;max-width:280px;margin:0 10px}
+  #screen-projects .search-inp{padding:5px 10px;font-size:11px}
+  #projFilters{margin-top:6px!important;padding-bottom:0}
+  .filter-chip{padding:3px 9px;font-size:10px}
+
+  /* Admin screen: tighten header + tab row */
+  #screen-admin .scr-hdr{padding:8px 13px 6px}
+  #screen-admin .scr-sub{margin-top:1px}
+  .tab-bar{padding:5px 13px}
+  .tab-btn{padding:4px 10px;font-size:10px}
+
+  /* AI Core / chat screen: shrink the mode tabs, context bar, and the
+     mode/word-count/token/Smart footer row so more of the conversation
+     itself is visible above the composer */
+  .mode-bar{padding:5px 13px}
+  .mchip{padding:3px 9px;font-size:10px}
+  .ctx-bar{padding:3px 13px;font-size:9px}
+  .inp-area{padding:6px 13px}
+  .inp-row{padding:4px 4px 4px 10px}
+  textarea.inp{min-height:18px;font-size:13px}
+  .inp-hint{margin-top:3px}
+  .inp-hint span{font-size:9px!important}
+  .inp-hint a{padding:3px 6px!important;font-size:10px!important}
 }
 @media (orientation:landscape) and (min-width:481px){
   .app{height:100dvh}
 }
 
-/* short landscape phone screens: trim vertical chrome so content fits */
+/* short landscape phone screens: trim vertical chrome even further so
+   content fits comfortably */
 @media (orientation:landscape) and (max-height:430px){
   .hdr{padding:6px 10px}
-  .bnav{margin:0 7px 6px;padding:5px 3px 6px}
+  .bnav{padding:8px 3px;gap:4px}
   .ni-lbl{font-size:8px}
-  .scr-hdr{padding:9px 13px 7px}
+  .scr-hdr{padding:7px 13px 6px}
+  .scr-title{font-size:15px}
 }
 
 
@@ -995,17 +1067,48 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
 <div class="sidebar" id="sidebar">
   <div class="sb-hdr"><span class="sb-title">Chat History</span><span class="icon-btn" onclick="closeSB()" style="width:28px;height:28px;font-size:14px">✕</span></div>
   <div class="new-chat-btn" onclick="newChat()">＋ New Chat</div>
-  <div class="sb-btn-sm" onclick="openPromptLib();closeSB()">📚 Prompt Library</div>
-  <div class="sb-btn-sm" onclick="openPinnedModal();closeSB()">📌 Pinned Messages</div>
-  <div class="sb-btn-sm" onclick="openChatSearch();closeSB()">🔍 Search Chats</div>
-  <div class="sb-btn-sm" onclick="openPromptHist();closeSB()">🕐 Prompt History</div>
-  <div class="sb-btn-sm" onclick="go('settings');closeSB()">⚙ Settings</div>
+  <div class="sb-list" id="chatList"></div>
   <div style="margin:8px 9px 3px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Projects</div>
   <div class="new-chat-btn" style="background:linear-gradient(135deg,var(--accent2),#5B4FD6)" onclick="openSbNewProj()">🚀 New Project</div>
   <div class="sb-btn-sm" onclick="go('projects');closeSB()">📂 Existing Projects</div>
   <div class="sb-btn-sm" onclick="startSbUploadProject()">📤 Upload Project</div>
   <input type="file" id="sbProjUploadInput" accept=".html,.htm,text/html" style="display:none" onchange="onSidebarUploadApp(event)">
-  <div class="sb-list" id="chatList"></div>
+  <div class="sb-btn-sm" onclick="openPromptLib();closeSB()">📚 Prompt Library</div>
+  <div class="sb-btn-sm" onclick="openPinnedModal();closeSB()">📌 Pinned Messages</div>
+  <div class="sb-btn-sm" onclick="openChatSearch();closeSB()">🔍 Search Chats</div>
+  <div class="sb-btn-sm" onclick="openPromptHist();closeSB()">🕐 Prompt History</div>
+  <div class="sb-btn-sm" onclick="go('settings');closeSB()">⚙ Settings</div>
+</div>
+<!-- BOTTOM NAV / SIDE RAIL — sits between sidebar and main content; CSS
+     "order" repositions it to the bottom in portrait and to a vertical
+     rail between the sidebar and main pane in landscape -->
+<div class="bnav">
+  <div class="ni" id="nav-projects" onclick="go('projects')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <div class="ni-lbl">Build</div>
+  </div>
+  <div class="ni" id="nav-memory" onclick="go('memory')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    <div class="ni-lbl">Memory</div>
+  </div>
+  <div class="ni ni-core active" id="nav-chat" onclick="go('chat')">
+    <div class="ai-core mini">
+      <div class="orb-stage">
+        <div class="gyro g1"></div>
+        <div class="gyro g2"></div>
+        <div class="core-sphere-pos"><div class="core-sphere"></div></div>
+      </div>
+    </div>
+    <div class="ni-lbl">AI Core</div>
+  </div>
+  <div class="ni" id="nav-skills" onclick="go('skills')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <div class="ni-lbl">Skills</div>
+  </div>
+  <div class="ni" id="nav-admin" onclick="go('admin')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div class="ni-lbl">Admin</div>
+  </div>
 </div>
 <div class="main-pane">
 <div class="hdr">
@@ -1067,9 +1170,9 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
     <div class="inp-hint">
       <span id="modeHint" style="font-size:10px">Mode: <b style="color:var(--accent)">General</b></span>
       <div style="display:flex;align-items:center;gap:5px">
-        <span id="wordCount" style="font-size:10px;color:var(--text3)">0w</span>
+        <span id="wordCount" title="Words typed so far" onclick="toast('Word count of your message so far','')" style="font-size:10px;color:var(--text3);cursor:pointer">0w</span>
         <span style="color:var(--border2);font-size:10px">·</span>
-        <span id="tokCount" style="font-size:10px;color:var(--text3)">~0 tok</span>
+        <span id="tokCount" title="Estimated tokens — the units AI models use to process text (roughly 3/4 of a word each)" onclick="toast('Estimated tokens this message will use — tokens are the small text chunks the AI reads your message in','')" style="font-size:10px;color:var(--text3);cursor:pointer">~0 tok</span>
         <a onclick="openPromptHist()" style="padding:5px 7px;cursor:pointer;font-size:13px;border-radius:6px;display:inline-block;-webkit-tap-highlight-color:rgba(255,255,255,.12);touch-action:manipulation">🕐</a>
         <a id="tokHint" onclick="toggleAR()" style="padding:5px 8px;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent3);background:rgba(62,207,178,.1);border-radius:6px;display:inline-flex;align-items:center;gap:2px;-webkit-tap-highlight-color:rgba(62,207,178,.2);touch-action:manipulation;text-decoration:none">⚡<span id="tokHintText">Smart</span></a>
       </div>
@@ -1080,24 +1183,24 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
 <!-- PROJECTS -->
 <div class="screen" id="screen-projects">
   <div class="scr-hdr">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div><div class="scr-title">Build</div><div class="scr-sub">Full app projects with AI dev team</div></div>
-      <div style="display:flex;gap:6px">
+    <div id="projRow1" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <div style="flex-shrink:0"><div class="scr-title">Build</div><div class="scr-sub">Full app projects with AI dev team</div></div>
+      <div id="projSearchWrap" style="order:3;flex:1 1 100%">
+        <input class="search-inp" id="projSearch" placeholder="🔍 Search projects…" oninput="renderProjList()">
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
         <div class="icon-btn" onclick="openCatModal()" title="Manage categories" style="font-size:14px">📁</div>
         <div class="icon-btn" onclick="showKnowledgeGraph()" title="Knowledge Graph" style="font-size:14px">🕸️</div>
       </div>
     </div>
-    <div style="margin-top:9px;display:flex;flex-direction:column;gap:7px">
-      <input class="search-inp" id="projSearch" placeholder="🔍 Search projects…" oninput="renderProjList()">
-      <div class="filter-row" id="projFilters">
-        <div class="filter-chip active" onclick="setProjFilter('')" data-filter="">All</div>
-        <div class="filter-chip" onclick="setProjFilter('active')" data-filter="active">🟢 Active</div>
-        <div class="filter-chip" onclick="setProjFilter('paused')" data-filter="paused">⏸ Paused</div>
-        <div class="filter-chip" onclick="setProjFilter('done')" data-filter="done">✅ Done</div>
-        <div class="filter-chip" onclick="setProjFilter('archived')" data-filter="archived">📦 Archived</div>
-        <div class="filter-chip" onclick="setSortProj('updated')" data-sort="updated">↕ Recent</div>
-        <div class="filter-chip" onclick="setSortProj('pct')" data-sort="pct">📊 Progress</div>
-      </div>
+    <div class="filter-row" id="projFilters" style="margin-top:9px">
+      <div class="filter-chip active" onclick="setProjFilter('')" data-filter="">All</div>
+      <div class="filter-chip" onclick="setProjFilter('active')" data-filter="active">🟢 Active</div>
+      <div class="filter-chip" onclick="setProjFilter('paused')" data-filter="paused">⏸ Paused</div>
+      <div class="filter-chip" onclick="setProjFilter('done')" data-filter="done">✅ Done</div>
+      <div class="filter-chip" onclick="setProjFilter('archived')" data-filter="archived">📦 Archived</div>
+      <div class="filter-chip" onclick="setSortProj('updated')" data-sort="updated">↕ Recent</div>
+      <div class="filter-chip" onclick="setSortProj('pct')" data-sort="pct">📊 Progress</div>
     </div>
   </div>
   <div class="scr-body">
@@ -1694,35 +1797,6 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
   </div>
 </div>
 
-<!-- BOTTOM NAV -->
-<div class="bnav">
-  <div class="ni" id="nav-projects" onclick="go('projects')">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    <div class="ni-lbl">Build</div>
-  </div>
-  <div class="ni" id="nav-memory" onclick="go('memory')">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-    <div class="ni-lbl">Memory</div>
-  </div>
-  <div class="ni ni-core active" id="nav-chat" onclick="go('chat')">
-    <div class="ai-core mini">
-      <div class="orb-stage">
-        <div class="gyro g1"></div>
-        <div class="gyro g2"></div>
-        <div class="core-sphere-pos"><div class="core-sphere"></div></div>
-      </div>
-    </div>
-    <div class="ni-lbl">AI Core</div>
-  </div>
-  <div class="ni" id="nav-skills" onclick="go('skills')">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-    <div class="ni-lbl">Skills</div>
-  </div>
-  <div class="ni" id="nav-admin" onclick="go('admin')">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    <div class="ni-lbl">Admin</div>
-  </div>
-</div>
 <div class="toast" id="toast" style="display:none"></div>
 
 <!-- TOOLS DROPDOWN — inside .app, z-index above everything -->
@@ -5549,11 +5623,8 @@ async function init(){
     if(!S.refKeys||!S.refKeys.basic)genRefKeys();else S.keyRotateAt=Date.now()+5*60*1000;
     updateCtxBar('ctxBar');
     go('chat');
-    // Show local file banner if opened directly from Downloads
-    if(IS_LOCAL_FILE){
-      const banner=document.getElementById('localFileBanner');
-      if(banner&&!ld('bannerDismissed',false))banner.style.display='block';
-    }
+    // Local file banner disabled — no longer shown automatically (was
+    // popping up every launch even once the app was already installed).
     // Run after-init plugins (word counter, category select, storage stats, etc.)
     await EchoPlugins.run('init','after');
     lmTryAutoRestore(); // fire-and-forget: reload a previously-loaded on-device model, if any
