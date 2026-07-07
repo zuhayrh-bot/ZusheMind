@@ -2015,7 +2015,14 @@ function detectTask(messages){
 }
 function modelCanHandle(id,task){
   if(task==='image') return id.includes('gemini');
-  if(task==='code') return /claude|deepseek|kimi|gemini|groq/.test(id);
+  // Previously this whitelisted only claude/deepseek/kimi/gemini/groq for
+  // code tasks, silently excluding Mistral, Cerebras, HF, and OpenRouter's
+  // free Qwen/Llama/Auto models from the fallback chain. That meant a
+  // code/app-building request could exhaust its (much shorter) allowed list
+  // in one or two calls and fall through to the paid or-claude model even
+  // though several free options were still available and untried. Any
+  // non-image model can write code, so treat it like 'document'.
+  if(task==='code') return !id.includes('image');
   if(task==='document') return !id.includes('image');
   return true;
 }
