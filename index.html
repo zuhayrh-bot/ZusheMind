@@ -3209,7 +3209,9 @@ async function _directGemini(messages,signal){
     const isLikelyQuotaNotBadKey=r.status===401&&/oauth 2 access token|invalid authentication credentials/i.test(emsg);
     throw{status:r.status,message:emsg,quotaExhausted:isQuota||isLikelyQuotaNotBadKey};
   }
-  return d.candidates?.[0]?.content?.parts?.[0]?.text||'No response.';
+  const geminiText=d.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!geminiText)throw{status:r.status,message:'Gemini returned an empty response body (often a safety-filter block on the input, not a real failure)'};
+  return geminiText;
 }
 // Detects an image-generation request before it ever enters the text-model
 // fallback chain. Catching this up front matters: none of the chat models
@@ -3360,7 +3362,9 @@ async function _directGroq(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||'Groq error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Groq returned an empty response body'};
+  return content;
 }
 async function _directDeepSeek(messages,signal){
   const r=await fetch('https://api.deepseek.com/chat/completions',{
@@ -3369,7 +3373,9 @@ async function _directDeepSeek(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||'DeepSeek error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'DeepSeek returned an empty response body'};
+  return content;
 }
 async function _directKimi(messages,signal){
   // Kimi (Moonshot AI) uses OpenAI-compatible chat completions at api.moonshot.ai
@@ -3381,7 +3387,9 @@ async function _directKimi(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||'Kimi error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Kimi returned an empty response body'};
+  return content;
 }
 
 async function _directMistral(messages,signal){
@@ -3392,7 +3400,9 @@ async function _directMistral(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||'Mistral error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Mistral returned an empty response body'};
+  return content;
 }
 
 
@@ -3404,7 +3414,9 @@ async function _directCerebras(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||'Cerebras error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Cerebras returned an empty response body'};
+  return content;
 }
 
 async function _directHF(messages,signal){
@@ -3417,7 +3429,9 @@ async function _directHF(messages,signal){
   });
   const d=await r.json();
   if(d.error)throw{status:r.status,message:d.error.message||d.error||'HF error'};
-  return d.choices?.[0]?.message?.content||'No response.';
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Hugging Face returned an empty response body'};
+  return content;
 }
 
 // Strips unpaired UTF-16 surrogates and other characters that break JSON.stringify /
@@ -3482,7 +3496,12 @@ async function callAI(messages,modelId,attempt=0,_errLog=[]){
         _errLog.push({model:'Claude Sonnet 4 (Direct)',id:'ant-sonnet',mid:'ant-sonnet',status:r.status,msg:emsg,creditExhausted:isCreditExhausted});
         const nm=advance();return nm?callAI(messages,nm,attempt+1,_errLog):diagnoseFailure(_errLog);
       }
-      return d.content?.[0]?.text||'No response.';
+      const claudeText=d.content?.[0]?.text;
+      if(!claudeText){
+        _errLog.push({model:'Claude Sonnet 4 (Direct)',id:'ant-sonnet',mid:'ant-sonnet',status:r.status,msg:'Empty response body'});
+        const nm=advance();return nm?callAI(messages,nm,attempt+1,_errLog):diagnoseFailure(_errLog);
+      }
+      return claudeText;
     }catch(e){
       _errLog.push({model:'Claude Sonnet 4 (Direct)',id:'ant-sonnet',mid:'ant-sonnet',status:0,msg:e.message});
       const nm=advance();return nm?callAI(messages,nm,attempt+1,_errLog):diagnoseFailure(_errLog);
@@ -3607,7 +3626,17 @@ async function callAI(messages,modelId,attempt=0,_errLog=[]){
     }
     S.tokensSaved+=Math.max(0,Math.round((d.usage?.total_tokens||0)*0.4));
     sv('tokensSaved',S.tokensSaved);
-    return d.choices?.[0]?.message?.content||'No response.';
+    const orContent=d.choices?.[0]?.message?.content;
+    if(!orContent){
+      _errLog.push({model:getModel(modelId).name,id:modelId,mid,status:r.status,msg:'Empty response body (no content returned)'});
+      const nm=advance();
+      if(attempt<10&&nm){
+        toast('⚡ '+getModel(modelId).name+' returned nothing, trying '+getModel(nm).name+'…','tinfo');
+        return callAI(messages,nm,attempt+1,_errLog);
+      }
+      return diagnoseFailure(_errLog);
+    }
+    return orContent;
   }catch(e){
     clearTimeout(_tmo);
     const isAbort=e.name==='AbortError';
