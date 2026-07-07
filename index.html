@@ -6262,7 +6262,7 @@ function getNextStep(projectId, replyText){
   const tasks = p.tasks || [];
   const pendingTasks = tasks.filter(t=>!t.done);
   if(pendingTasks.length){
-    return { text: '✅ Next: ' + pendingTasks[0].text, action: ()=>{openTasksModal();} };
+    return { text: '✅ Next: ' + pendingTasks[0].text, action: ()=>{openTasksModal();}, completed:p.completedSteps||[], total:7 };
   }
   const lower = replyText.toLowerCase();
   const steps = [
@@ -6274,16 +6274,35 @@ function getNextStep(projectId, replyText){
     {k:['test','qa','bug'],s:'🧪 Run QA testing on all features'},
     {k:['payment','monetiz','subscription'],s:'💰 Implement the payment system'},
   ];
-  for(const s of steps){
-    if(s.k.some(k=>lower.includes(k))) return { text: '⚡ Suggested: ' + s.s, action: null };
+  // Previously this returned the FIRST category whose keywords appeared
+  // anywhere in the reply, with no memory of what had already been
+  // completed. Since almost any backend reply mentions "database" at
+  // some point, it kept re-suggesting the same step turn after turn
+  // even after that step was clearly already done. p.completedSteps is
+  // saved with the project (via saveProjects()), so this persists across
+  // sessions — closing and reopening the app won't forget progress.
+  p.completedSteps = p.completedSteps || [];
+  const matched = steps.filter(s=>s.k.some(k=>lower.includes(k)));
+  const freshMatch = matched.find(s=>!p.completedSteps.includes(s.s));
+  const fallbackFresh = !freshMatch ? steps.find(s=>!p.completedSteps.includes(s.s)) : null;
+  const chosen = freshMatch||fallbackFresh;
+  if(chosen){
+    // The step that's about to be suggested is a NEW one — meaning
+    // whichever step(s) matched the keywords in THIS reply are what was
+    // just built, so mark those as done before suggesting what's next.
+    matched.forEach(s=>{if(!p.completedSteps.includes(s.s))p.completedSteps.push(s.s);});
+    saveProjects();
+    return { text: '⚡ Suggested: ' + chosen.s, action: null, completed:p.completedSteps, total:steps.length };
   }
-  return { text: '💬 Continue the conversation to build more features', action: null };
+  return { text: '💬 Continue the conversation to build more features', action: null, completed:p.completedSteps, total:steps.length };
 }
 function renderNextStep(projId, replyText, containerEl){
   const step = getNextStep(projId, replyText); if(!step) return;
   const div = document.createElement('div');
   div.className = 'next-step-banner';
-  div.innerHTML = `<span style="font-size:18px">👉</span><div style="flex:1"><div style="font-size:11px;color:var(--accent3);font-weight:700;margin-bottom:2px">NEXT STEP</div><div style="font-size:13px;font-weight:600">${step.text}</div></div>${step.action?'<span style="color:var(--accent3)">›</span>':''}`;
+  const doneCount=(step.completed||[]).length;
+  const progressLine=step.total?`<div style="font-size:10px;color:var(--text3);margin-top:3px">✅ ${doneCount}/${step.total} build steps completed so far</div>`:'';
+  div.innerHTML = `<span style="font-size:18px">👉</span><div style="flex:1"><div style="font-size:11px;color:var(--accent3);font-weight:700;margin-bottom:2px">NEXT STEP</div><div style="font-size:13px;font-weight:600">${step.text}</div>${progressLine}</div>${step.action?'<span style="color:var(--accent3)">›</span>':''}`;
   if(step.action) div.onclick = step.action;
   containerEl.appendChild(div);
 }
