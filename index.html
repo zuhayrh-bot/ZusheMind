@@ -5103,11 +5103,14 @@ async function sendPdAuto(p){
   if(filesSnap.length)S.pdAttachedFiles=[];
   const msgs=buildContext(p.messages.map(m=>({role:m.role,content:m.content})),sys,fileCtx);
   const reply=await callAI(msgs,buildFallbackChain()[0]||'or-claude');
-  const genFile=resolveGeneratedFile(reply,filesSnap);
-  p.messages.push({role:'assistant',content:reply,ts:Date.now(),model:'or-claude',generatedFile:genFile});
+  const replyText=(reply&&typeof reply==='object')
+    ?('❌ '+(reply.message||'API error. Check your OpenRouter key in Settings.'))
+    :(reply||'❌ Every model in the fallback chain returned an empty response. Please try again.');
+  const genFile=resolveGeneratedFile(replyText,filesSnap);
+  p.messages.push({role:'assistant',content:replyText,ts:Date.now(),model:'or-claude',generatedFile:genFile});
   saveProjects();S.pdLoading=false;
   document.getElementById('pdMeta').textContent=p.messages.length+' messages · '+p.type;
-  renderPdChat();saveProjectKB(p,reply);
+  renderPdChat();saveProjectKB(p,replyText);
 }
 function sendPdMsg(){
   const inp=document.getElementById('pdInp');
@@ -5127,7 +5130,7 @@ function sendPdMsg(){
   callAI(msgs,buildFallbackChain()[0]||'or-gemini').then(reply=>{
     const replyText=(reply&&typeof reply==='object')
       ?('❌ '+(reply.message||'API error. Check your OpenRouter key in Settings.'))
-      :(reply||'No response.');
+      :(reply||'❌ Every model in the fallback chain returned an empty response. This is rare now that empty responses trigger fallback — please try again, and if it repeats, check Settings for a key issue.');
     const genFile=resolveGeneratedFile(replyText,filesSnap);
     p.messages.push({role:'assistant',content:replyText,ts:Date.now(),model:'or-gemini',generatedFile:genFile});
     saveProjects();S.pdLoading=false;setCoreState('done');
