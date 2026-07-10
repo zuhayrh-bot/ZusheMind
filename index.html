@@ -1536,6 +1536,13 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
       <div id="hfKeyTestResult" style="display:none;margin-top:7px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.7"></div>
     </div>
     <div class="set-row">
+      <div class="set-lbl">⬡ GitHub Token <span style="color:var(--text3);font-weight:400">(optional — raises rate limit)</span></div>
+      <div class="krow"><input class="ti" type="password" id="ghToken" placeholder="ghp_… or github_pat_…" oninput="saveSettings()" style="flex:1"><span class="icon-btn" onclick="togVis('ghToken')">👁</span></div>
+      <div class="set-desc">Unauthenticated GitHub API calls are capped at 60/hour. A free token (no scopes needed for public repos) raises that to 5,000/hour and lets you import/run private repos too. Get at <b>github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> (grant read-only "Contents" access).</div>
+      <button class="btn btn-teal" style="width:100%;margin-top:7px" onclick="testGhToken()">🧪 Test GitHub Token</button>
+      <div id="ghTokenTestResult" style="display:none;margin-top:7px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.7"></div>
+    </div>
+    <div class="set-row">
       <div class="set-lbl">🔑 Anthropic Key (optional)</div>
       <div class="krow"><input class="ti" type="password" id="antKey" placeholder="sk-ant-…" oninput="saveSettings()" style="flex:1"><span class="icon-btn" onclick="togVis('antKey')">👁</span></div>
       <div class="set-desc">Direct Claude Sonnet access. Best for large files (200k context). Get at <b>console.anthropic.com</b></div>
@@ -1784,6 +1791,14 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
     <div style="font-size:12px;color:var(--text2)">Review your stored memories. Adjust confidence levels or delete incorrect ones.</div>
     <div id="memConfList" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto"></div>
     <button class="btn btn-g" onclick="document.getElementById('memConfModal').classList.remove('show')" style="width:100%">Done</button>
+  </div>
+</div>
+
+<!-- GITHUB REPO RUNNER MODAL -->
+<div class="modal-overlay" id="ghRunModal">
+  <div class="modal-box">
+    <div class="modal-title">▶️ Run Repo<span class="icon-btn" style="width:28px;height:28px;font-size:14px" onclick="closeGhRunModal()">✕</span></div>
+    <div id="ghRunBody" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
 </div>
 
@@ -2228,7 +2243,7 @@ const FOUNDER_PROMPTS={
 // ═══════════════════════════════════════════════════════════
 const S={
   screen:'chat',chats:[],activeChatId:null,loading:false,pdLoading:false,
-  selModel:'or-gemini',autoRoute:true,apiKeys:{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:'',mistral:'',cerebras:'',hf:''},
+  selModel:'or-gemini',autoRoute:true,apiKeys:{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:'',mistral:'',cerebras:'',hf:'',gh:''},
   memories:[],skills:[],projects:[],activeProject:null,
   activeMode:'default',selTmpl:'blank',attachedFiles:[],pdAttachedFiles:[],
   adminEmail:'',refKeys:{basic:'',mid:'',premium:''},
@@ -2600,7 +2615,7 @@ async function loadAll(){
   // reset to the free auto-router rather than routing back into a paid/broken model.
   if(S.selModel==='or-llama'||S.selModel==='or-gemini')S.selModel='or-auto';
   S.autoRoute=ld('autoRoute',true);
-  S.apiKeys=ld('apiKeys',{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:''});
+  S.apiKeys=ld('apiKeys',{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:'',gh:''});
   // Ensure all key fields exist even if saved data predates v7
   S.apiKeys.gemini=(S.apiKeys.gemini||'').trim();
   S.apiKeys.groq=S.apiKeys.groq||'';
@@ -2659,6 +2674,7 @@ async function loadAll(){
   const mk2=document.getElementById('mistralKey');if(mk2)mk2.value=S.apiKeys.mistral||'';
   const ck2=document.getElementById('cerebrasKey');if(ck2)ck2.value=S.apiKeys.cerebras||'';
   const hk2=document.getElementById('hfKey');if(hk2)hk2.value=S.apiKeys.hf||'';
+  const ghk2=document.getElementById('ghToken');if(ghk2)ghk2.value=S.apiKeys.gh||'';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2949,6 +2965,21 @@ async function testHFKey(){
     const d=await r.json();
     if(d.error){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Error: '+(d.error.message||JSON.stringify(d.error));}
     else{res.style.background='rgba(57,255,176,.08)';res.style.borderColor='rgba(57,255,176,.3)';res.innerHTML='✅ Hugging Face key works! Llama 3.3 70B is ready.';}
+  }catch(e){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Network error: '+e.message;}
+}
+
+async function testGhToken(){
+  const key=S.apiKeys.gh;
+  const res=document.getElementById('ghTokenTestResult');
+  if(!res)return;
+  if(!key){res.style.cssText='display:block;background:rgba(255,92,122,.12);border:1px solid rgba(255,92,122,.3);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';res.innerHTML='❌ No GitHub token entered. That\'s fine — imports still work unauthenticated, just capped at 60 requests/hour.';return;}
+  res.style.cssText='display:block;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';
+  res.innerHTML='🔄 Testing GitHub token…';
+  try{
+    const r=await fetch('https://api.github.com/rate_limit',{headers:{'Accept':'application/vnd.github.v3+json','Authorization':'Bearer '+key}});
+    const d=await r.json();
+    if(!r.ok){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Token rejected: '+(d.message||r.status);}
+    else{const lim=d.resources?.core?.limit||0;res.style.background='rgba(57,255,176,.08)';res.style.borderColor='rgba(57,255,176,.3)';res.innerHTML=`✅ Token works! GitHub API limit is now <b>${lim}/hour</b> (was 60/hour unauthenticated).`;}
   }catch(e){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Network error: '+e.message;}
 }
 
@@ -4524,12 +4555,16 @@ function parseGhUrl(url){
   return null;
 }
 
-// Fetch with timeout wrapper
+// Fetch with timeout wrapper — auto-attaches the saved GitHub token
+// (if any) so imports/runs get 5,000 req/hr instead of 60 req/hr.
 async function ghFetch(url, headers){
+  const isGh=/^https:\/\/(api\.github\.com|raw\.githubusercontent\.com)\//.test(url);
+  const tok=S.apiKeys&&S.apiKeys.gh;
+  const finalHeaders=(isGh&&tok)?{...headers,'Authorization':'Bearer '+tok}:headers;
   const controller=new AbortController();
   const tid=setTimeout(()=>controller.abort(),GH_TIMEOUT_MS);
   try{
-    const r=await fetch(url,{headers,signal:controller.signal});
+    const r=await fetch(url,{headers:finalHeaders,signal:controller.signal});
     clearTimeout(tid);
     return r;
   }catch(e){
@@ -4708,7 +4743,7 @@ async function analyzeGitHub(){
       </div>
       <div style="font-size:13px;color:var(--text2);line-height:1.6">${e.message||'Unknown error. Check the URL and try again.'}</div>
       ${canRetry?`<button class="btn btn-g" style="margin-top:10px;width:100%" onclick="analyzeGitHub()">🔄 Retry</button>`:''}
-      ${isRateLimit?'<div style="font-size:11px;color:var(--text3);margin-top:8px">💡 Tip: GitHub allows 60 free API requests per hour per IP.</div>':''}
+      ${isRateLimit?`<div style="font-size:11px;color:var(--text3);margin-top:8px">💡 ${S.apiKeys.gh?'Even with a token, GitHub caps API requests at 5,000/hour — try again shortly.':'GitHub allows 60 free API requests per hour when unauthenticated. Add a free GitHub token in Settings to raise that to 5,000/hour.'}</div>`:''}
     </div>`;
     toast(icon+' '+(e.message||'GitHub import failed'),'err');
   }
@@ -4823,8 +4858,9 @@ function renderGhResult(repo,owner,repoName){
         <a href="https://github.com/${owner}/${repoName}" target="_blank" class="btn btn-g" style="text-decoration:none;flex:1;justify-content:center">⬡ View on GitHub</a>
         <a href="https://github.com/codespaces/new?repo=${owner}/${repoName}" target="_blank" class="btn btn-purple" style="text-decoration:none;flex:1;justify-content:center">🚀 Open in Codespaces</a>
       </div>
-      <div style="margin-top:8px">
-        <button class="btn btn-teal" style="width:100%" onclick="importRepoAsProject('${owner}','${repoName}')">➕ Import as ZuShé Mind Project</button>
+      <div style="margin-top:8px;display:flex;gap:7px">
+        <button class="btn btn-purple" style="flex:1;justify-content:center" onclick="runGhRepo('${owner}','${repoName}')">▶️ Run Repo</button>
+        <button class="btn btn-teal" style="flex:1;justify-content:center" onclick="importRepoAsProject('${owner}','${repoName}')">➕ Import as Project</button>
       </div>
     </div>
     <div class="card" id="ghSetupCard">
@@ -4891,6 +4927,304 @@ function importRepoAsProject(owner,repo){
   toast(`✅ "${repo}" imported as project`,'ok');
   document.getElementById('ghUrl').value='';
   openProject(p.id);
+}
+
+// ═══════════════════════════════════════════════════════════
+// GITHUB REPO RUNNER — actually execute imported repos in-browser
+// HTML/web projects → sandboxed <iframe srcdoc> preview, fully local.
+// Everything else (.py/.js/.go/.rb/...) → Piston, a free hosted
+// code-execution sandbox (https://github.com/engineer-man/piston).
+// No server of our own needed — works from a single HTML file.
+// ═══════════════════════════════════════════════════════════
+const PISTON_EXEC_URL='https://emkc.org/api/v2/piston/execute';
+const PISTON_RUNTIMES_URL='https://emkc.org/api/v2/piston/runtimes';
+let _pistonRuntimes=null;
+const RUN_EXT_LANG={py:'python',js:'javascript',mjs:'javascript',ts:'typescript',rb:'ruby',go:'go',php:'php',java:'java',c:'c',cpp:'c++',cc:'c++',h:'c',cs:'csharp',rs:'rust',swift:'swift',kt:'kotlin',sh:'bash',pl:'perl',lua:'lua',r:'r',dart:'dart'};
+const RUN_WEB_EXT=['html','htm'];
+
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function closeGhRunModal(){document.getElementById('ghRunModal').classList.remove('show');}
+
+function ghRunEntryCandidates(files){
+  const webPref=['index.html','public/index.html','docs/index.html','src/index.html'];
+  for(const f of webPref)if(files.includes(f))return f;
+  const topHtml=files.find(f=>!f.includes('/')&&/\.html?$/i.test(f));
+  if(topHtml)return topHtml;
+  const scriptPref=['main.py','app.py','run.py','index.js','main.js','app.js'];
+  for(const f of scriptPref)if(files.includes(f))return f;
+  const anyHtml=files.find(f=>/\.html?$/i.test(f));
+  if(anyHtml)return anyHtml;
+  const anyRunnable=files.find(f=>RUN_EXT_LANG[(f.split('.').pop()||'').toLowerCase()]);
+  return anyRunnable||null;
+}
+
+function runGhRepo(owner,repo){
+  const ghRepo=S.ghRepos&&S.ghRepos.find(r=>r.owner===owner&&r.repo===repo);
+  if(!ghRepo){toast('Re-import this repo first — its file list isn\'t cached','err');return;}
+  document.getElementById('ghRunModal').classList.add('show');
+  const entry=ghRunEntryCandidates(ghRepo.files||[]);
+  renderGhRunPicker(owner,repo,ghRepo,entry);
+}
+
+function renderGhRunPicker(owner,repo,ghRepo,selected){
+  const body=document.getElementById('ghRunBody');
+  const runnable=(ghRepo.files||[]).filter(f=>{
+    const e=(f.split('.').pop()||'').toLowerCase();
+    return RUN_WEB_EXT.includes(e)||RUN_EXT_LANG[e];
+  }).slice(0,60);
+  const looksLikeServer=ghRepo.stack&&(ghRepo.stack.runtime==='Node.js'||ghRepo.stack.frameworks.some(f=>['Express','FastAPI','Flask','Django','Next.js'].includes(f)));
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--text2);line-height:1.5">
+      <b>${owner}/${repo}</b> — pick a file to run. HTML pages (even multi-file ones with local CSS/JS/images) render live right here in a sandboxed preview; scripts (.py, .js, .go, .rb…) run on a free cloud sandbox and show console output.
+    </div>
+    ${runnable.length?`
+    <select class="ti" id="ghRunFileSel" style="width:100%">
+      ${runnable.map(f=>`<option value="${f}" ${f===selected?'selected':''}>${f}</option>`).join('')}
+    </select>
+    <button class="btn btn-purple" style="width:100%" onclick="executeGhRunFile('${owner}','${repo}')">▶ Run Selected File</button>
+    `:`<div style="font-size:13px;color:var(--text3);padding:8px 0">No obviously runnable file (.html/.py/.js/etc.) was found among the first files scanned. Try the full dev server below, or open it in Codespaces from the repo card.</div>`}
+    <div class="card" style="margin:2px 0 0">
+      <div class="card-title" style="font-size:12px">🛰️ Need a real server${looksLikeServer?' (looks like this repo needs one)':''}?</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">The sandbox above runs one script and stops — it can't hold a port open. For a real Node/Python backend with <code>npm install</code> and a live dev server, StackBlitz spins up an actual cloud container and streams it back here. Not local, but genuinely running.</div>
+      <button class="btn btn-purple" style="width:100%" onclick="openStackBlitzRepo('${owner}','${repo}')">🚀 Launch Full Dev Server</button>
+    </div>
+    <div id="ghRunOutput"></div>
+  `;
+}
+
+function openStackBlitzRepo(owner,repo){
+  const out=document.getElementById('ghRunOutput');
+  out.innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin:8px 0 4px">🛰️ StackBlitz — ${owner}/${repo}</div>
+    <iframe src="https://stackblitz.com/github/${owner}/${repo}?embed=1&theme=dark" style="width:100%;height:60vh;border:1px solid var(--border);border-radius:var(--rsm)" allow="cross-origin-isolated"></iframe>
+    <div style="font-size:10px;color:var(--text3);margin-top:6px">This runs on StackBlitz's own cloud (their WebContainers tech) — not inside ZuShé Mind. The repo's <code>package.json</code> controls what starts. First load can take a minute, and very large or unusual repos may not boot cleanly.</div>
+    <a href="https://stackblitz.com/github/${owner}/${repo}" target="_blank" class="btn btn-g" style="width:100%;margin-top:8px;text-decoration:none;justify-content:center">↗ Open in a full browser tab instead</a>
+  `;
+}
+
+async function executeGhRunFile(owner,repo){
+  const sel=document.getElementById('ghRunFileSel');
+  const file=sel?sel.value:null;
+  if(!file)return;
+  const ghRepo=S.ghRepos.find(r=>r.owner===owner&&r.repo===repo);
+  const branch=ghRepo.defaultBranch||'main';
+  const out=document.getElementById('ghRunOutput');
+  const ext=(file.split('.').pop()||'').toLowerCase();
+
+  if(RUN_WEB_EXT.includes(ext)){
+    out.innerHTML=`<div style="font-size:12px;color:var(--text2);margin:8px 0">Building live preview…</div>`;
+    try{
+      const html=await buildWebBundle(owner,repo,branch,file);
+      out.innerHTML=`
+        <div style="font-size:11px;color:var(--text3);margin:8px 0 4px">🖥️ Live Preview — ${file}</div>
+        <iframe sandbox="allow-scripts allow-forms allow-popups allow-modals" style="width:100%;height:50vh;border:1px solid var(--border);border-radius:var(--rsm);background:#fff" srcdoc="${escHtml(html)}"></iframe>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">Sandboxed — it can't touch your ZuShé Mind data or storage. Any APIs/images the page itself calls out to still work normally.</div>`;
+    }catch(e){
+      out.innerHTML=`<div style="font-size:12px;color:var(--danger);margin-top:8px">❌ ${e.message}</div>`;
+    }
+    return;
+  }
+
+  const lang=RUN_EXT_LANG[ext];
+  if(!lang){out.innerHTML=`<div style="font-size:12px;color:var(--danger);margin-top:8px">❌ Don't know how to run .${ext} files yet.</div>`;return;}
+
+  out.innerHTML=`<div style="font-size:12px;color:var(--text2);margin:8px 0">Fetching ${file} and running on cloud sandbox…</div>`;
+  try{
+    const code=await fetchRawFile(owner,repo,branch,file);
+    const result=await runOnPiston(lang,file,code);
+    const stdout=(result.run&&result.run.stdout)||'';
+    const stderr=(result.run&&result.run.stderr)||'';
+    const compileErr=(result.compile&&result.compile.stderr)||'';
+    out.innerHTML=`
+      <div style="font-size:11px;color:var(--text3);margin:8px 0 4px">📤 Output — ${file} (${lang})</div>
+      <div class="cw"><div class="clb"><span class="cln">stdout</span><button class="cpb" onclick="cpCode(this)">Copy</button></div><pre>${escHtml(stdout)||'(no output)'}</pre></div>
+      ${(stderr||compileErr)?`<div class="cw"><div class="clb"><span class="cln" style="color:var(--danger)">stderr</span><button class="cpb" onclick="cpCode(this)">Copy</button></div><pre style="color:var(--danger)">${escHtml(compileErr+(compileErr&&stderr?'\n':'')+stderr)}</pre></div>`:''}
+    `;
+  }catch(e){
+    out.innerHTML=`<div style="font-size:12px;color:var(--danger);margin-top:8px">❌ ${e.message}</div>`;
+  }
+}
+
+async function fetchRawFile(owner,repo,branch,path){
+  const r=await ghFetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`,{});
+  if(!r.ok)throw new Error(`Could not fetch ${path} from GitHub (${r.status}). It may not exist on the "${branch}" branch.`);
+  return r.text();
+}
+
+// ── Multi-file web bundler ──────────────────────────────────
+// Turns an arbitrary-depth static site (relative <script src>,
+// <link href>, @import, url(), <img src>, and even local ES-module
+// imports) into one self-contained document, so it can run inside a
+// sandboxed iframe with no allow-same-origin (i.e. it can't reach back
+// into ZuShé Mind's own storage). Text assets get inlined literally;
+// binary assets (images/fonts) become data: URIs; local ES modules get
+// recursively resolved into nested data:text/javascript URIs, since
+// blob: URLs don't reliably cross an opaque sandboxed-iframe origin
+// but data: URIs do.
+const WEB_BIN_MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',svg:'image/svg+xml',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf'};
+const BUNDLE_MAX_FILES=25;
+const BUNDLE_MAX_BYTES=3*1024*1024; // ~3MB budget — mind mobile data & the 12s-per-fetch timeout
+let _bundleFetches=0,_bundleBytes=0,_bundleTruncated=false;
+
+function joinPath(dir,rel){
+  if(/^https?:\/\//i.test(rel)||rel.startsWith('//')||rel.startsWith('data:')||rel.startsWith('#'))return null;
+  if(rel.startsWith('/'))rel=rel.slice(1);
+  const stack=[];
+  for(const p of (dir+rel).split('/')){
+    if(p==='..')stack.pop();
+    else if(p!=='.'&&p!=='')stack.push(p);
+  }
+  return stack.join('/');
+}
+function dirOf(path){return path.includes('/')?path.slice(0,path.lastIndexOf('/')+1):'';}
+
+async function replaceAllAsync(str,regex,asyncFn){
+  let out=str;
+  for(const m of [...str.matchAll(regex)]){
+    out=out.replace(m[0],await asyncFn(...m));
+  }
+  return out;
+}
+
+async function fetchAssetDataUri(owner,repo,branch,path,mime){
+  if(_bundleFetches>=BUNDLE_MAX_FILES||_bundleBytes>=BUNDLE_MAX_BYTES){_bundleTruncated=true;return null;}
+  const r=await ghFetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`,{});
+  if(!r.ok)return null;
+  const buf=await r.arrayBuffer();
+  _bundleFetches++;_bundleBytes+=buf.byteLength;
+  if(_bundleBytes>BUNDLE_MAX_BYTES){_bundleTruncated=true;}
+  let bin='';const bytes=new Uint8Array(buf);
+  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return `data:${mime};base64,${btoa(bin)}`;
+}
+
+// Recursively resolves a local ES module (and its own relative imports)
+// into a single self-contained data:text/javascript URI.
+async function resolveJsModule(owner,repo,branch,path,cache){
+  if(cache.has(path))return cache.get(path);
+  if(_bundleFetches>=BUNDLE_MAX_FILES||_bundleBytes>=BUNDLE_MAX_BYTES){_bundleTruncated=true;return null;}
+  let code;
+  try{code=await fetchRawFile(owner,repo,branch,path);}catch(e){return null;}
+  _bundleFetches++;_bundleBytes+=code.length;
+  if(_bundleBytes>BUNDLE_MAX_BYTES){_bundleTruncated=true;return null;}
+  const dir=dirOf(path);
+  const importRx=/(\bfrom\s+|\bimport\s*\(\s*)(['"])(\.[^'"]+)\2/g;
+  for(const m of [...code.matchAll(importRx)]){
+    let resolved=joinPath(dir,m[3]);
+    if(!resolved)continue;
+    if(!/\.[a-z0-9]+$/i.test(resolved))resolved+='.js';
+    const subUri=await resolveJsModule(owner,repo,branch,resolved,cache);
+    if(subUri)code=code.split(m[0]).join(m[1]+m[2]+subUri+m[2]);
+  }
+  const uri='data:text/javascript;charset=utf-8,'+encodeURIComponent(code);
+  cache.set(path,uri);
+  return uri;
+}
+
+// Recursively inlines @import rules and rewrites url(...) assets to data: URIs.
+async function inlineCss(owner,repo,branch,path,cache){
+  if(cache.has(path))return cache.get(path);
+  let css;
+  try{css=await fetchRawFile(owner,repo,branch,path);}catch(e){return'';}
+  _bundleFetches++;_bundleBytes+=css.length;
+  const dir=dirOf(path);
+  for(const im of [...css.matchAll(/@import\s+(?:url\()?["']?([^"')]+)["']?\)?;?/g)]){
+    const resolved=joinPath(dir,im[1]);
+    if(resolved)css=css.replace(im[0],await inlineCss(owner,repo,branch,resolved,cache));
+  }
+  for(const um of [...css.matchAll(/url\((['"]?)([^'")]+)\1\)/g)]){
+    const resolved=joinPath(dir,um[2]);
+    if(!resolved)continue;
+    const mime=WEB_BIN_MIME[(resolved.split('.').pop()||'').toLowerCase()];
+    if(!mime)continue;
+    const uri=await fetchAssetDataUri(owner,repo,branch,resolved,mime);
+    if(uri)css=css.split(um[0]).join(`url(${uri})`);
+  }
+  cache.set(path,css);
+  return css;
+}
+
+async function buildWebBundle(owner,repo,branch,entryPath){
+  _bundleFetches=0;_bundleBytes=0;_bundleTruncated=false;
+  let html=await fetchRawFile(owner,repo,branch,entryPath);
+  _bundleFetches++;_bundleBytes+=html.length;
+  const dir=dirOf(entryPath);
+  const jsCache=new Map(),cssCache=new Map();
+
+  // <script src="..."> — classic scripts inline literally, type="module"
+  // scripts get their local import tree resolved into a data: URI src.
+  html=await replaceAllAsync(html,/<script\b([^>]*)\ssrc=["']([^"']+)["']([^>]*)><\/script>/gi,async(full,pre,src,post)=>{
+    const resolved=joinPath(dir,src);
+    if(!resolved)return full;
+    const isModule=/type=["']module["']/i.test(pre+post);
+    if(isModule){
+      const uri=await resolveJsModule(owner,repo,branch,resolved,jsCache);
+      return uri?`<script${pre} src="${uri}"${post}><\/script>`:full;
+    }
+    if(_bundleFetches>=BUNDLE_MAX_FILES||_bundleBytes>=BUNDLE_MAX_BYTES){_bundleTruncated=true;return full;}
+    try{
+      const code=await fetchRawFile(owner,repo,branch,resolved);
+      _bundleFetches++;_bundleBytes+=code.length;
+      return `<script${pre}${post}>${code}<\/script>`;
+    }catch(e){return full;}
+  });
+
+  // <link rel=stylesheet href="..."> (either attribute order)
+  html=await replaceAllAsync(html,/<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]+rel=["']stylesheet["'][^>]*>/gi,async(full,h1,h2)=>{
+    const resolved=joinPath(dir,h1||h2);
+    if(!resolved)return full;
+    return `<style>${await inlineCss(owner,repo,branch,resolved,cssCache)}</style>`;
+  });
+
+  // <img src="..."> and favicon <link rel=icon href="...">
+  html=await replaceAllAsync(html,/<img([^>]*)\ssrc=["']([^"']+)["']/gi,async(full,attrs,src)=>{
+    const resolved=joinPath(dir,src);
+    const mime=resolved&&WEB_BIN_MIME[(resolved.split('.').pop()||'').toLowerCase()];
+    if(!resolved||!mime)return full;
+    const uri=await fetchAssetDataUri(owner,repo,branch,resolved,mime);
+    return uri?`<img${attrs} src="${uri}"`:full;
+  });
+
+  if(_bundleTruncated)html+=`\n<!-- ZuShé Mind: this repo has more assets than the ${BUNDLE_MAX_FILES}-file / ${(BUNDLE_MAX_BYTES/1024/1024).toFixed(0)}MB run budget — some references may be missing. -->`;
+  return html;
+}
+
+async function getPistonRuntimes(){
+  if(_pistonRuntimes)return _pistonRuntimes;
+  const r=await ghFetch(PISTON_RUNTIMES_URL,{});
+  if(!r.ok)throw new Error('Could not reach the code-execution sandbox (Piston API) — check your connection.');
+  _pistonRuntimes=await r.json();
+  return _pistonRuntimes;
+}
+
+async function pistonPost(url,payload){
+  const controller=new AbortController();
+  const tid=setTimeout(()=>controller.abort(),20000);
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
+    clearTimeout(tid);
+    if(!r.ok){
+      let msg=`Sandbox error (${r.status})`;
+      try{const j=await r.json();if(j.message)msg=j.message;}catch(e){}
+      throw new Error(msg);
+    }
+    return r.json();
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError')throw new Error('Sandbox execution timed out (20s limit).');
+    throw e;
+  }
+}
+
+async function runOnPiston(lang,filename,code){
+  const runtimes=await getPistonRuntimes();
+  const match=runtimes.find(r=>r.language===lang||(r.aliases||[]).includes(lang));
+  if(!match)throw new Error(`No sandbox runtime available for "${lang}".`);
+  return pistonPost(PISTON_EXEC_URL,{
+    language:match.language,
+    version:match.version,
+    files:[{name:filename.split('/').pop(),content:code}]
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4966,6 +5300,7 @@ function renderDNA(){
         <div style="font-size:11px;color:var(--text2);margin-top:2px">${r.stack&&r.stack.summary||r.language} · ${r.fileCount} files</div></div>
         <div style="display:flex;gap:5px">
           <a href="https://github.com/${r.owner}/${r.repo}" target="_blank" class="icon-btn" style="font-size:12px;text-decoration:none" title="GitHub">⬡</a>
+          <button class="icon-btn" style="font-size:12px" onclick="runGhRepo('${r.owner}','${r.repo}')" title="Run repo">▶️</button>
           <button class="icon-btn" style="font-size:12px" onclick="importRepoAsProject('${r.owner}','${r.repo}')" title="Import as project">➕</button>
           <button class="icon-btn" style="font-size:12px;color:var(--danger)" onclick="S.ghRepos=S.ghRepos.filter(x=>!(x.owner==='${r.owner}'&&x.repo==='${r.repo}'));sv('ghRepos',S.ghRepos);renderDNA()" title="Remove">🗑</button>
         </div>
@@ -5455,6 +5790,7 @@ function saveSettings(){
   const mk=document.getElementById('mistralKey');if(mk)S.apiKeys.mistral=mk.value.trim();
   const ck=document.getElementById('cerebrasKey');if(ck)S.apiKeys.cerebras=ck.value.trim();
   const hk=document.getElementById('hfKey');if(hk)S.apiKeys.hf=hk.value.trim();
+  const ghk=document.getElementById('ghToken');if(ghk)S.apiKeys.gh=ghk.value.trim();
   S.adminEmail=document.getElementById('adminEmail').value.trim();
   sv('apiKeys',S.apiKeys);sv('adminEmail',S.adminEmail);
   if(S.adminEmail)document.getElementById('adminBadge').style.display='flex';
