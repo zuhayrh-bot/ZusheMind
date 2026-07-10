@@ -1543,6 +1543,14 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
       <div id="ghTokenTestResult" style="display:none;margin-top:7px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.7"></div>
     </div>
     <div class="set-row">
+      <div class="set-lbl">🏠 Custom Local Endpoint <span style="color:var(--text3);font-weight:400">(e.g. a repo running via Termux)</span></div>
+      <div class="krow"><input class="ti" type="text" id="customUrl" placeholder="http://127.0.0.1:8787" oninput="saveSettings()" style="flex:1"></div>
+      <div class="krow" style="margin-top:6px"><input class="ti" type="password" id="customKey" placeholder="API key (optional)" oninput="saveSettings()" style="flex:1"><span class="icon-btn" onclick="togVis('customKey')">👁</span></div>
+      <div class="set-desc">Points ZuShé Mind at any OpenAI-compatible endpoint running on your own phone/network — like an AI gateway you launched with Termux. Appears as "Custom Local Endpoint" in your model list.</div>
+      <button class="btn btn-teal" style="width:100%;margin-top:7px" onclick="testCustomEndpoint()">🧪 Test Connection</button>
+      <div id="customEndpointTestResult" style="display:none;margin-top:7px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.7"></div>
+    </div>
+    <div class="set-row">
       <div class="set-lbl">🔑 Anthropic Key (optional)</div>
       <div class="krow"><input class="ti" type="password" id="antKey" placeholder="sk-ant-…" oninput="saveSettings()" style="flex:1"><span class="icon-btn" onclick="togVis('antKey')">👁</span></div>
       <div class="set-desc">Direct Claude Sonnet access. Best for large files (200k context). Get at <b>console.anthropic.com</b></div>
@@ -1802,6 +1810,14 @@ html.lite-mode .tmpl,html.lite-mode .cat-folder,html.lite-mode .kg-node,html.lit
   </div>
 </div>
 
+<!-- TERMUX QUICK-CONNECT MODAL -->
+<div class="modal-overlay" id="ghTermuxModal">
+  <div class="modal-box">
+    <div class="modal-title">📱 Run on Your Phone<span class="icon-btn" style="width:28px;height:28px;font-size:14px" onclick="document.getElementById('ghTermuxModal').classList.remove('show')">✕</span></div>
+    <div id="ghTermuxBody" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
 <!-- VOICE NOTE MODAL -->
 <div class="modal-overlay" id="voiceModal">
   <div class="modal-box" style="text-align:center">
@@ -1848,6 +1864,7 @@ const MODELS_CLOUD=[
   {id:'dir-mistral',name:'Mistral Large (Direct)',prov:'Mistral AI Direct',icon:'🌬️',color:'#FF7043',best:['reasoning','coding','multilingual','writing'],free:true,direct:'mistral'},
   {id:'dir-cerebras',name:'Llama 4 Scout (Cerebras)',prov:'Cerebras Direct',icon:'⚡',color:'#00E676',best:['fast','general','coding'],free:true,direct:'cerebras'},
   {id:'dir-hf',name:'Llama 3.3 70B (HF)',prov:'Hugging Face Router',icon:'🤗',color:'#FF9D00',best:['general','writing','long docs','coding'],free:true,direct:'hf'},
+  {id:'dir-custom',name:'Custom Local Endpoint',prov:'Self-hosted (e.g. Termux)',icon:'🏠',color:'#A8E063',best:['self-hosted','private','free'],free:true,direct:'custom'},
 ];
 const MODELS_LOCAL=[
   {id:'loc-file',name:'On-Device Model',prov:'Local — runs in this browser (WASM)',icon:'◎',color:'#A8E063',best:['offline','private','no cost'],free:true},
@@ -2243,7 +2260,7 @@ const FOUNDER_PROMPTS={
 // ═══════════════════════════════════════════════════════════
 const S={
   screen:'chat',chats:[],activeChatId:null,loading:false,pdLoading:false,
-  selModel:'or-gemini',autoRoute:true,apiKeys:{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:'',mistral:'',cerebras:'',hf:'',gh:''},
+  selModel:'or-gemini',autoRoute:true,apiKeys:{or:'',ant:'',gemini:'',groq:'',deepseek:'',kimi:'',mistral:'',cerebras:'',hf:'',gh:'',customUrl:'',customKey:''},
   memories:[],skills:[],projects:[],activeProject:null,
   activeMode:'default',selTmpl:'blank',attachedFiles:[],pdAttachedFiles:[],
   adminEmail:'',refKeys:{basic:'',mid:'',premium:''},
@@ -2675,6 +2692,8 @@ async function loadAll(){
   const ck2=document.getElementById('cerebrasKey');if(ck2)ck2.value=S.apiKeys.cerebras||'';
   const hk2=document.getElementById('hfKey');if(hk2)hk2.value=S.apiKeys.hf||'';
   const ghk2=document.getElementById('ghToken');if(ghk2)ghk2.value=S.apiKeys.gh||'';
+  const cu2=document.getElementById('customUrl');if(cu2)cu2.value=S.apiKeys.customUrl||'';
+  const cku2=document.getElementById('customKey');if(cku2)cku2.value=S.apiKeys.customKey||'';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2981,6 +3000,23 @@ async function testGhToken(){
     if(!r.ok){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Token rejected: '+(d.message||r.status);}
     else{const lim=d.resources?.core?.limit||0;res.style.background='rgba(57,255,176,.08)';res.style.borderColor='rgba(57,255,176,.3)';res.innerHTML=`✅ Token works! GitHub API limit is now <b>${lim}/hour</b> (was 60/hour unauthenticated).`;}
   }catch(e){res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';res.innerHTML='❌ Network error: '+e.message;}
+}
+
+async function testCustomEndpoint(){
+  const res=document.getElementById('customEndpointTestResult');
+  if(!res)return;
+  const base=(S.apiKeys.customUrl||'').trim().replace(/\/+$/,'');
+  if(!base){res.style.cssText='display:block;background:rgba(255,92,122,.12);border:1px solid rgba(255,92,122,.3);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';res.innerHTML='❌ No URL entered yet.';return;}
+  res.style.cssText='display:block;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';
+  res.innerHTML='🔄 Testing connection…';
+  try{
+    const text=await _directCustomLocal([{role:'user',content:'Reply with just the word OK.'}],(new AbortController()).signal);
+    res.style.background='rgba(57,255,176,.08)';res.style.borderColor='rgba(57,255,176,.3)';
+    res.innerHTML=`✅ Connected! It replied: "${escHtml((text||'').slice(0,120))}"`;
+  }catch(e){
+    res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';
+    res.innerHTML='❌ '+(e.message||'Could not reach that endpoint. Make sure it\'s running and your phone is on the same network (or it\'s reachable over the internet).');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3414,6 +3450,22 @@ async function _directGroq(messages,signal){
   if(!content)throw{status:r.status,message:'Groq returned an empty response body'};
   return content;
 }
+// Talks to any OpenAI-compatible endpoint the person is self-hosting (e.g. an
+// AI gateway repo running locally via Termux). Same shape as every other
+// direct provider, just with a person-supplied base URL instead of a fixed one.
+async function _directCustomLocal(messages,signal){
+  const base=(S.apiKeys.customUrl||'').trim().replace(/\/+$/,'');
+  if(!base)throw{status:0,message:'No custom endpoint URL set in Settings.'};
+  const url=base.endsWith('/chat/completions')?base:base+'/v1/chat/completions';
+  const headers={'Content-Type':'application/json'};
+  if(S.apiKeys.customKey)headers['Authorization']='Bearer '+S.apiKeys.customKey;
+  const r=await fetch(url,{method:'POST',signal,headers,body:JSON.stringify({model:'auto',messages:messages.map(m=>({role:m.role,content:m.content||''})),max_tokens:8000})});
+  const d=await r.json().catch(()=>({}));
+  if(d.error)throw{status:r.status,message:(d.error.message||d.error)||'Custom endpoint error'};
+  const content=d.choices?.[0]?.message?.content;
+  if(!content)throw{status:r.status,message:'Custom endpoint returned an empty response body — check it\'s actually running and reachable at that URL.'};
+  return content;
+}
 async function _directDeepSeek(messages,signal){
   const r=await fetch('https://api.deepseek.com/chat/completions',{
     method:'POST',signal,headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.apiKeys.deepseek},
@@ -3522,7 +3574,7 @@ async function callAI(messages,modelId,attempt=0,_errLog=[]){
       return{status:0,message:'Local model error: '+(e&&e.message||e)};
     }
   }
-  const chain=buildFallbackChain(detectTask(messages)).filter(m=>!isModelBlocked(m) && (m.id!=='dir-gemini' || S.apiKeys.gemini));
+  const chain=buildFallbackChain(detectTask(messages)).filter(m=>!isModelBlocked(m) && (m.id!=='dir-gemini' || S.apiKeys.gemini) && (m.id!=='dir-custom' || S.apiKeys.customUrl));
   const advance=()=>{
     const nextIdx=chain.indexOf(modelId)+1;
     return nextIdx<chain.length?chain[nextIdx]:null;
@@ -3561,7 +3613,7 @@ async function callAI(messages,modelId,attempt=0,_errLog=[]){
     const ctrl=new AbortController();
     const _tmo=setTimeout(()=>ctrl.abort(),25000);
     try{
-      const fn=directModel.direct==='gemini'?_directGemini:directModel.direct==='groq'?_directGroq:directModel.direct==='kimi'?_directKimi:directModel.direct==='mistral'?_directMistral:directModel.direct==='cerebras'?_directCerebras:directModel.direct==='hf'?_directHF:_directDeepSeek;
+      const fn=directModel.direct==='gemini'?_directGemini:directModel.direct==='groq'?_directGroq:directModel.direct==='kimi'?_directKimi:directModel.direct==='mistral'?_directMistral:directModel.direct==='cerebras'?_directCerebras:directModel.direct==='hf'?_directHF:directModel.direct==='custom'?_directCustomLocal:_directDeepSeek;
       const text=await fn(messages,ctrl.signal);
       clearTimeout(_tmo);
       return text;
@@ -4685,6 +4737,27 @@ async function analyzeGitHub(){
       extractDNA(`${repo} (GitHub)`,dnaContent);
     }
 
+    // Fetch package.json (if present) — gives real signal for classification:
+    // bin → CLI tool, dependency names → MCP server / server framework, etc.
+    let pkg=null;
+    if(files.includes('package.json')){
+      try{
+        const pr=await ghFetch(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/package.json`,{});
+        if(pr.ok){
+          const pj=JSON.parse(await pr.text());
+          pkg={
+            name:pj.name||'',
+            bin:pj.bin||null,
+            scripts:pj.scripts||{},
+            deps:[...Object.keys(pj.dependencies||{}),...Object.keys(pj.devDependencies||{})],
+          };
+        }
+      }catch(e){/* not fatal — classification just falls back to text heuristics */}
+    }
+
+    // Look for an explicit SKILL.md (agent-skill repos are built around this file)
+    const skillMdPath=files.find(f=>/(^|\/)skill\.md$/i.test(f));
+
     // Build the repo object
     const ghRepo={
       owner,repo,url:`https://github.com/${owner}/${repo}`,
@@ -4698,8 +4771,11 @@ async function analyzeGitHub(){
       stack,structure,
       languages:langData,
       readmeSummary:readmeTxt.slice(0,600),
+      readmeFull:readmeTxt.slice(0,4000),
+      pkg,skillMdPath:skillMdPath||null,
       analyzed:Date.now(),
     };
+    ghRepo.runKind=classifyRunKind(ghRepo);
 
     // Save to state
     if(!S.ghRepos)S.ghRepos=[];
@@ -4726,6 +4802,12 @@ async function analyzeGitHub(){
       toast(`✅ "${owner}/${repo}" imported as skill — active in all chats`,'ok');
     }
 
+    // ── Zero-tap install for agent-skill repos: there's nothing to "run", so the
+    // full technique is pulled in immediately rather than waiting for a tap ──
+    if(ghRepo.runKind.kind==='agent-skill'){
+      await importClassifiedSkill(owner,repo);
+    }
+
     // AI-powered setup guide
     renderGhResult(ghRepo,owner,repo);
     await generateSetupGuide(ghRepo,owner,repo);
@@ -4749,6 +4831,138 @@ async function analyzeGitHub(){
   }
 
   ghLoading=false;btn.textContent='🔍 Import';btn.disabled=false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// REPO RUN-KIND CLASSIFIER — figures out what a repo actually IS
+// (agent skill / MCP server / persistent server / static site /
+// client-side tool / CLI tool / research code / plain library) and
+// which of ZuShé Mind's actions fits it best, with the reasoning
+// spelled out so the person isn't just handed a label.
+// ═══════════════════════════════════════════════════════════
+function classifyRunKind(ghRepo){
+  const desc=(ghRepo.description||'').toLowerCase();
+  const readme=(ghRepo.readmeFull||ghRepo.readmeSummary||'').toLowerCase();
+  const text=desc+' '+readme;
+  const files=(ghRepo.files||[]).map(f=>f.toLowerCase());
+  const hasFile=s=>files.some(f=>f.includes(s));
+  const deps=(ghRepo.pkg&&ghRepo.pkg.deps)||[];
+  const hasDep=s=>deps.some(d=>d.includes(s));
+  const hasBin=!!(ghRepo.pkg&&ghRepo.pkg.bin);
+  const hasPkgJson=hasFile('package.json');
+  const hasDocker=hasFile('dockerfile')||hasFile('docker-compose');
+  const hasIndexHtml=files.includes('index.html');
+
+  // 1 — Agent skill: instructions for a coding agent, nothing to execute
+  if(ghRepo.skillMdPath||hasFile('/skills/')||hasFile('.claude/skills')||
+     (/\bskill(s)?\b/.test(text)&&/(claude code|codex|cursor|copilot|gemini cli|antigravity|coding agent)/.test(text))){
+    return{
+      kind:'agent-skill',label:'🧠 Agent Skill / Prompt Pack',
+      blurb:`Not an app you run — it's a written technique (a "skill") meant to be loaded into an AI coding agent's context, teaching it a specific workflow or shortcut. No server, no UI, just knowledge.`,
+      options:[
+        {id:'import-skill',label:'📥 Re-import / Refresh Skill',how:`Already pulled in automatically the moment you imported this repo — ZuShé Mind applies it in every chat now. Tap this only if the repo's been updated and you want the latest version.`,best:true},
+        {id:'codespaces',label:'🚀 Open in Codespaces',how:`Only useful if you want to hand this to a separate coding agent (Claude Code, Cursor) rather than use it inside ZuShé Mind.`},
+      ],
+      recommend:'import-skill',
+      reason:`This is exactly what ZuShé Mind's Skills system exists for — no install, no server, and it was already imported automatically, zero taps required.`
+    };
+  }
+
+  // 2 — MCP server: built for a protocol ZuShé Mind doesn't speak
+  if(hasDep('modelcontextprotocol')||/\bmcp server\b|\bmodel context protocol\b/.test(text)){
+    return{
+      kind:'mcp-server',label:'🔌 MCP Server',
+      blurb:`A Model Context Protocol server — a background process that hands extra tools/data to MCP-aware clients like Claude Code or Claude Desktop. It's launched by that client, not opened as a webpage.`,
+      options:[
+        {id:'termux',label:'📱 Run 24/7 on your phone (Termux)',how:`Keeps it running in the background so any MCP client on your network can reach it.`,best:true},
+        {id:'import-skill',label:'📥 Import summary as a Skill',how:`So ZuShé Mind at least knows this tool exists and can explain it to you in chat.`},
+      ],
+      recommend:'termux',
+      reason:`ZuShé Mind doesn't speak the MCP client protocol itself, so it can't directly use this server — but keeping it alive via Termux means Claude Code/Desktop elsewhere on your network still can.`
+    };
+  }
+
+  // 3 — Persistent server / AI gateway / proxy — needs a real always-on process
+  const serverish=/\b(gateway|proxy|router|daemon|24\/7|listens on|self-host|local proxy)\b/.test(text)||hasDocker||
+    (hasPkgJson&&(hasDep('express')||hasDep('fastify')||hasDep('koa')||hasDep('http-proxy')));
+  if(serverish){
+    return{
+      kind:'persistent-server',label:'🛰️ Persistent Server',
+      blurb:`This has to stay running and listen on a port — no browser tab can do that, including ZuShé Mind's own sandbox. It needs a real always-on process.`,
+      options:[
+        {id:'termux',label:'📱 Run 24/7 on your phone (Termux)',how:`A genuine background process on Android, no root required. Once it's up, connect ZuShé Mind to it directly as a custom AI provider in Settings.`,best:true},
+        {id:'stackblitz',label:'🚀 Launch Full Dev Server (StackBlitz cloud)',how:`Fastest way to try it with zero install — but it runs on StackBlitz's cloud, not your phone, and won't stay up long-term.`},
+        {id:'import-skill',label:'📥 Import summary as a Skill',how:`So ZuShé Mind knows it exists, without actually running it.`},
+      ],
+      recommend:'termux',
+      reason:`Termux is the only option here that's actually yours — free, private, and stays on. And because this looks like an AI gateway, once it's running ZuShé Mind can talk to it directly as a Custom Local Endpoint — exactly the job it's built for.`
+    };
+  }
+
+  // 4 — Client-side / zero-server tool — literally built for a browser tab
+  if(/\b(client-side|runs entirely in your browser|zero-server|no backend|browser-only)\b/.test(text)){
+    return{
+      kind:'client-side-tool',label:'🖥️ Client-Side Web Tool',
+      blurb:`Built to run entirely inside a browser tab, no backend at all — a natural fit for ZuShé Mind's sandboxed live preview.`,
+      options:[
+        {id:'run-repo',label:'▶️ Run Repo (live preview)',how:`Renders right here in the sandbox — exactly what this project was designed for.`,best:true},
+        {id:'import-skill',label:'📥 Import as Skill',how:`So ZuShé Mind can reference its approach/technique in chat too.`},
+      ],
+      recommend:'run-repo',
+      reason:`The author built this to need nothing but a browser, so Run Repo is the native fit — no workaround required.`
+    };
+  }
+
+  // 5 — Plain static site
+  if(hasIndexHtml&&!hasPkgJson){
+    return{
+      kind:'static-web',label:'🌐 Static Web App',
+      blurb:`Plain HTML/CSS/JS — no build step, no server involved.`,
+      options:[{id:'run-repo',label:'▶️ Run Repo (live preview)',how:`Loads instantly in the sandboxed preview.`,best:true}],
+      recommend:'run-repo',
+      reason:`Nothing to install — this is the simplest case ZuShé Mind supports directly.`
+    };
+  }
+
+  // 6 — CLI tool / published npm package
+  if(hasBin||/\bnpx\b|\bcommand[- ]line\b|\bcli tool\b/.test(text)){
+    return{
+      kind:'cli-tool',label:'⌨️ CLI Tool',
+      blurb:`Meant to be installed and run from a terminal, not opened as a webpage.`,
+      options:[
+        {id:'termux',label:'📱 Install via Termux',how:`Install it with npm and run it as a real terminal command on your phone.`,best:true},
+        {id:'import-skill',label:'📥 Import as Skill',how:`So you can ask ZuShé Mind what it does or how to use it, without installing anything.`},
+      ],
+      recommend:'termux',
+      reason:`It's built for a terminal, and Termux is the closest thing to that on Android without a PC.`
+    };
+  }
+
+  // 7 — Research / ML codebase, not really phone-runnable
+  if(/\bfoundation model\b|\bdataset\b|\bpre-?train/.test(text)&&ghRepo.language==='Python'){
+    return{
+      kind:'research-model',label:'🔬 Research / ML Model',
+      blurb:`A research codebase — usually needs real GPU compute and setup, not something to casually run from a phone.`,
+      options:[
+        {id:'import-skill',label:'📥 Import summary as a Skill',how:`So ZuShé Mind can discuss, cite, or explain it in chat.`,best:true},
+        {id:'codespaces',label:'🚀 Open in Codespaces',how:`If you actually want to dig into the code (still no GPU there, but you can read/edit it).`},
+      ],
+      recommend:'import-skill',
+      reason:`Running this for real needs GPU compute a phone-only setup doesn't have, so importing the knowledge is the practical option.`
+    };
+  }
+
+  // 8 — Fallback: generic library or single script
+  return{
+    kind:'library',label:'📚 Library / Script',
+    blurb:`Looks like a general-purpose library or script rather than a standalone app — could still be a simple script worth trying.`,
+    options:[
+      {id:'run-repo',label:'▶️ Run Repo',how:`Worth a try if it turns out to be a simple script — works instantly if so.`},
+      {id:'import-skill',label:'📥 Import as Skill',how:`So ZuShé Mind knows what it does and can reference it in chat.`,best:true},
+    ],
+    recommend:'import-skill',
+    reason:`No strong enough signal to say exactly what this needs — importing the knowledge is the safe default, and Run Repo is worth a shot too.`
+  };
 }
 
 function detectStack(files,meta,langs){
@@ -4820,6 +5034,7 @@ function renderGhResult(repo,owner,repoName){
   const lc=langColors[repo.language]||'var(--text2)';
   const topLangs=Object.entries(repo.languages||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const totalBytes=topLangs.reduce((s,[,v])=>s+v,0);
+  const rk=repo.runKind||classifyRunKind(repo);
 
   document.getElementById('ghResult').innerHTML=`
     <div class="card card-purple">
@@ -4863,10 +5078,62 @@ function renderGhResult(repo,owner,repoName){
         <button class="btn btn-teal" style="flex:1;justify-content:center" onclick="importRepoAsProject('${owner}','${repoName}')">➕ Import as Project</button>
       </div>
     </div>
+    <div class="card" style="border-color:var(--accent3)44">
+      <div class="card-title" style="font-size:13px">${rk.label}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px">${rk.blurb}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.7px">Your Options</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        ${rk.options.map(o=>`
+          <div style="background:${o.id===rk.recommend?'rgba(124,111,247,.09)':'var(--bg3)'};border:1px solid ${o.id===rk.recommend?'var(--accent3)66':'var(--border)'};border-radius:var(--rsm);padding:9px 11px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px">
+              <span style="font-size:12.5px;font-weight:700">${o.label}</span>
+              ${o.id===rk.recommend?'<span class="tag" style="color:var(--accent3);margin-left:6px">✓ Recommended</span>':''}
+            </div>
+            <div style="font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:7px">${o.how}</div>
+            <button class="btn ${o.id===rk.recommend?'btn-purple':'btn-g'}" style="width:100%;justify-content:center;font-size:12px;padding:7px" onclick="runClassifiedOption('${owner}','${repoName}','${o.id}')">${o.label}</button>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:9px;line-height:1.6"><b>Why:</b> ${rk.reason}</div>
+    </div>
     <div class="card" id="ghSetupCard">
       <div class="card-title">⚙️ Setup Guide</div>
       <div id="ghSetupContent"><div class="typing-w"><span></span><span></span><span></span></div></div>
     </div>`;
+}
+
+function runClassifiedOption(owner,repo,optionId){
+  if(optionId==='run-repo')runGhRepo(owner,repo);
+  else if(optionId==='termux')openTermuxConnect(owner,repo);
+  else if(optionId==='stackblitz')window.open(`https://stackblitz.com/github/${owner}/${repo}`,'_blank');
+  else if(optionId==='import-skill')importClassifiedSkill(owner,repo);
+  else if(optionId==='codespaces')window.open(`https://github.com/codespaces/new?repo=${owner}/${repo}`,'_blank');
+}
+
+// Pulls the actual SKILL.md / README content (not just a stack summary) into
+// a real ZuShé Mind skill, so agent-skill repos genuinely upgrade the app.
+async function importClassifiedSkill(owner,repo){
+  const ghRepo=S.ghRepos.find(r=>r.owner===owner&&r.repo===repo);
+  if(!ghRepo){toast('Re-import this repo first','err');return;}
+  toast('📥 Importing skill…','tinfo');
+  let content=ghRepo.readmeFull||ghRepo.readmeSummary||'';
+  if(ghRepo.skillMdPath){
+    try{
+      const branch=ghRepo.defaultBranch||'main';
+      content=await fetchRawFile(owner,repo,branch,ghRepo.skillMdPath);
+    }catch(e){/* fall back to README already in `content` */}
+  }
+  if(!content){toast('Nothing to import — no README or SKILL.md found','err');return;}
+  const kindLabel=(ghRepo.runKind&&ghRepo.runKind.label)||'📦';
+  const skillName=`${kindLabel.split(' ')[0]} ${owner}/${repo}`;
+  const existing=S.skills.find(s=>s.name===skillName);
+  const skillDesc=content.slice(0,3000);
+  if(existing){
+    existing.desc=skillDesc;existing.active=true;
+  }else{
+    S.skills.unshift({id:'gh_classified_'+Date.now(),name:skillName,desc:skillDesc,cat:(ghRepo.runKind&&ghRepo.runKind.kind)||'reference',active:true,source:'github',created:Date.now()});
+  }
+  sv('skills',S.skills);
+  toast(`✅ "${owner}/${repo}" imported as a Skill — active in every chat`,'ok');
 }
 
 async function generateSetupGuide(repo,owner,repoName){
@@ -4964,6 +5231,10 @@ function runGhRepo(owner,repo){
   document.getElementById('ghRunModal').classList.add('show');
   const entry=ghRunEntryCandidates(ghRepo.files||[]);
   renderGhRunPicker(owner,repo,ghRepo,entry);
+  // Tapping "Run Repo" already IS the person's go-ahead — if we're confident
+  // about the entry file, skip the redundant second "Run Selected File" tap
+  // and execute immediately. The dropdown stays there to switch files after.
+  if(entry)executeGhRunFile(owner,repo);
 }
 
 function renderGhRunPicker(owner,repo,ghRepo,selected){
@@ -5000,6 +5271,101 @@ function openStackBlitzRepo(owner,repo){
     <div style="font-size:10px;color:var(--text3);margin-top:6px">This runs on StackBlitz's own cloud (their WebContainers tech) — not inside ZuShé Mind. The repo's <code>package.json</code> controls what starts. First load can take a minute, and very large or unusual repos may not boot cleanly.</div>
     <a href="https://stackblitz.com/github/${owner}/${repo}" target="_blank" class="btn btn-g" style="width:100%;margin-top:8px;text-decoration:none;justify-content:center">↗ Open in a full browser tab instead</a>
   `;
+}
+
+// Builds a best-effort Termux install/run recipe from what we know about the
+// repo (published npm bin, package.json scripts, or a python entry point),
+// then shows how to point ZuShé Mind's "Custom Local Endpoint" at it once
+// it's up. This is the only way to get a genuinely persistent 24/7 process
+// on a phone with no PC and no root — a browser tab can't do that.
+function openTermuxConnect(owner,repo){
+  document.getElementById('ghTermuxModal').classList.add('show');
+  const body=document.getElementById('ghTermuxBody');
+  const ghRepo=S.ghRepos&&S.ghRepos.find(r=>r.owner===owner&&r.repo===repo);
+  if(!ghRepo){body.innerHTML=`<div style="font-size:12px;color:var(--danger)">Re-import this repo first — its details aren't cached.</div>`;return;}
+
+  const pkg=ghRepo.pkg;
+  const files=ghRepo.files||[];
+  const kind=(ghRepo.runKind&&ghRepo.runKind.kind)||'';
+  let steps=[];
+  if(pkg&&pkg.bin&&pkg.name){
+    const binCmd=Object.keys(pkg.bin)[0]||pkg.name;
+    steps=[
+      'pkg update -y && pkg install -y nodejs',
+      `npm install -g ${pkg.name}`,
+      binCmd,
+    ];
+  }else if(files.some(f=>f.toLowerCase()==='package.json')){
+    const startCmd=pkg&&pkg.scripts&&pkg.scripts.start?'npm start':(pkg&&pkg.scripts&&pkg.scripts.dev?'npm run dev':'node index.js');
+    steps=[
+      'pkg update -y && pkg install -y git nodejs',
+      `git clone https://github.com/${owner}/${repo}`,
+      `cd ${repo} && npm install`,
+      startCmd,
+    ];
+  }else if(files.some(f=>f.toLowerCase()==='requirements.txt')){
+    const entry=files.find(f=>/^(main|app|run)\.py$/i.test(f.split('/').pop()))||'main.py';
+    steps=[
+      'pkg update -y && pkg install -y git python',
+      `git clone https://github.com/${owner}/${repo}`,
+      `cd ${repo} && pip install -r requirements.txt`,
+      `python ${entry.split('/').pop()}`,
+    ];
+  }else{
+    steps=[
+      'pkg update -y && pkg install -y git',
+      `git clone https://github.com/${owner}/${repo}`,
+      `cd ${repo}  # check the repo's own README for the exact run command`,
+    ];
+  }
+
+  // What comes after "it's running" genuinely differs by kind — an MCP
+  // server doesn't speak the same protocol as a chat API, so promising a
+  // one-tap "connect" for it would just fail silently. Only gateway/CLI-style
+  // servers actually work with ZuShé Mind's OpenAI-compatible connector.
+  const connectSection=kind==='mcp-server'?`
+    <div class="card" style="margin-top:2px;border-color:var(--accent4)44">
+      <div class="card-title" style="font-size:12px">⚠️ About connecting this one</div>
+      <div style="font-size:11.5px;color:var(--text2);line-height:1.6">MCP servers speak a different protocol (JSON-RPC over stdio/SSE) than the chat APIs ZuShé Mind talks to — so keeping it alive here helps other MCP-aware tools (Claude Code, Claude Desktop) on your network, but ZuShé Mind can't call it directly yet. That's a real gap, not a "coming soon" — flag it if you want it prioritized.</div>
+    </div>`:`
+    <div class="card" style="margin-top:2px">
+      <div class="card-title" style="font-size:12px">🔗 Connect ZuShé Mind to it</div>
+      <div style="font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:8px">Once it's running, note the local URL it prints (usually <code>http://127.0.0.1:PORT</code>). Paste it below — no need to leave this screen.</div>
+      <input class="ti" type="text" id="termuxConnectUrl" placeholder="http://127.0.0.1:8787" value="${S.apiKeys.customUrl||''}" style="width:100%;margin-bottom:7px">
+      <button class="btn btn-purple" style="width:100%" onclick="saveTermuxConnectUrl()">💾 Save & Test Connection</button>
+      <div id="termuxConnectResult" style="display:none;margin-top:7px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.6"></div>
+    </div>`;
+
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--text2);line-height:1.6">
+      <b>Termux</b> is a real Linux terminal app for Android — free, no root — so this actually keeps running in the background, unlike anything inside a browser tab. Install it from F-Droid if you don't have it yet.
+    </div>
+    <div class="cw"><div class="clb"><span class="cln">Termux — ${owner}/${repo}</span><button class="cpb" onclick="cpCode(this)">Copy</button></div><pre>${escHtml(steps.join('\n'))}</pre></div>
+    <div style="font-size:10.5px;color:var(--text3)">Copy once, paste all lines into Termux at once — it runs them in order. ${!(pkg&&pkg.bin)?'This is a best-effort guess from the repo\'s files — if it fails, check the repo\'s own README for the exact command.':''}</div>
+    ${connectSection}
+  `;
+}
+
+async function saveTermuxConnectUrl(){
+  const input=document.getElementById('termuxConnectUrl');
+  const res=document.getElementById('termuxConnectResult');
+  if(!input||!res)return;
+  const url=input.value.trim().replace(/\/+$/,'');
+  if(!url){res.style.cssText='display:block;background:rgba(255,92,122,.12);border:1px solid rgba(255,92,122,.3);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';res.innerHTML='❌ Paste the URL first.';return;}
+  S.apiKeys.customUrl=url;
+  sv('apiKeys',S.apiKeys);
+  const cuEl=document.getElementById('customUrl');if(cuEl)cuEl.value=url;
+  res.style.cssText='display:block;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);font-size:12px;padding:8px 10px;border-radius:8px;margin-top:7px';
+  res.innerHTML='🔄 Testing connection…';
+  try{
+    const text=await _directCustomLocal([{role:'user',content:'Reply with just the word OK.'}],(new AbortController()).signal);
+    res.style.background='rgba(57,255,176,.08)';res.style.borderColor='rgba(57,255,176,.3)';
+    res.innerHTML=`✅ Connected and saved! Pick <b>"Custom Local Endpoint"</b> from your model list any time. It replied: "${escHtml((text||'').slice(0,100))}"`;
+    toast('✅ Custom Local Endpoint saved','ok');
+  }catch(e){
+    res.style.background='rgba(255,92,122,.12)';res.style.borderColor='rgba(255,92,122,.3)';
+    res.innerHTML='⚠️ Saved, but couldn\'t connect yet: '+(e.message||'unreachable')+'. Make sure it\'s actually running in Termux, then tap Test again.';
+  }
 }
 
 async function executeGhRunFile(owner,repo){
@@ -5791,6 +6157,8 @@ function saveSettings(){
   const ck=document.getElementById('cerebrasKey');if(ck)S.apiKeys.cerebras=ck.value.trim();
   const hk=document.getElementById('hfKey');if(hk)S.apiKeys.hf=hk.value.trim();
   const ghk=document.getElementById('ghToken');if(ghk)S.apiKeys.gh=ghk.value.trim();
+  const cu=document.getElementById('customUrl');if(cu)S.apiKeys.customUrl=cu.value.trim().replace(/\/+$/,'');
+  const cku=document.getElementById('customKey');if(cku)S.apiKeys.customKey=cku.value.trim();
   S.adminEmail=document.getElementById('adminEmail').value.trim();
   sv('apiKeys',S.apiKeys);sv('adminEmail',S.adminEmail);
   if(S.adminEmail)document.getElementById('adminBadge').style.display='flex';
